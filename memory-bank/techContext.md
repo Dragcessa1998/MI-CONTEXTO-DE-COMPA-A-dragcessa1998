@@ -36,7 +36,7 @@
 
 ## Estado del stack por hito
 
-- **Hito 1** (web estática): HTML5 + Tailwind (Play CDN) + JS de validación — en la raíz.
+- **Hito 1** (web estática): HTML5 + Tailwind CSS compilado + JS de validación — en la raíz. Publicación automatizada mediante GitHub Pages.
 - **Hito 2** (`/src`): utilidades TS puras (colecciones, búsqueda lineal/binaria, scoring, agregaciones, validaciones). Verificación: `tsc --noEmit` + `tsx src/demo.ts`.
 - **Hito 3** (`uis/talent-pipeline-tracker`): Next.js 14 + React 18 sobre la API del curso `https://playground.4geeks.com/tracker/api/v1`. Filtros/búsqueda por query params; PATCH estado/etapa; notas CRUD; alta/edición.
 - **Hito 4** (`uis/website`, `uis/backoffice`): migración de la web a Next.js + app interna que **importa** la lógica del Hito 2.

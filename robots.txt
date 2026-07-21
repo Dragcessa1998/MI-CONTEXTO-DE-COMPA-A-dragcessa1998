@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://4geeksacademy.github.io/MI-CONTEXTO-DE-COMPA-A-dragcessa1998/sitemap.xml

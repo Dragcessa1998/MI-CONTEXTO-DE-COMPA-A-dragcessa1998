@@ -2,13 +2,13 @@
  * validation.js — Validación del formulario de registro de talento (Nexova · Hito 1)
  *
  * Valida en tiempo real (al perder el foco y mientras se corrige) y al enviar.
- * Los mensajes de error son los exactos definidos en CONTEXT.md.
+ * Los mensajes de error son específicos y coherentes con los campos del formulario.
  * No envía datos a ningún sitio: simula el envío mostrando un mensaje de éxito.
  */
 (function () {
   'use strict';
 
-  // ----- Mensajes de error (literales del CONTEXT.md) -----
+  // ----- Mensajes de error específicos por campo -----
   const MSG = {
     fullName: 'El nombre debe contener al menos nombre y apellido',
     email: 'Ingresa un email válido (ejemplo: nombre@empresa.com)',
@@ -31,6 +31,8 @@
     const $ = function (id) { return document.getElementById(id); };
     const successBox = $('success-message');
     const counter = $('comments-counter');
+    const availabilityGroup = $('availability-group');
+    const availabilityOptions = form.querySelectorAll('[data-availability-option]');
 
     // Elementos de entrada por nombre de campo
     const inputs = {
@@ -104,6 +106,15 @@
     function setFieldState(name, message) {
       const errorEl = $('error-' + name);
       const input = inputs[name]; // puede ser undefined para 'availability'
+
+      if (name === 'availability') {
+        availabilityGroup.setAttribute('aria-invalid', message ? 'true' : 'false');
+        availabilityOptions.forEach(function (option) {
+          option.classList.toggle('border-red-500', Boolean(message));
+          option.classList.toggle('border-slate-300', !message);
+        });
+      }
+
       if (message) {
         errorEl.textContent = message;
         errorEl.classList.remove('hidden');

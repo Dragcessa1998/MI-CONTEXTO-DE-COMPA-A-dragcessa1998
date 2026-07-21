@@ -7,7 +7,7 @@
 ## Completado
 
 - **Hito 0 — Elige tu empresa** ✅ — `company-choice.md` + `CONTEXT.md` (Nexova). Empresa bloqueada: **Nexova**. Departamentos foco: Operaciones de Selección y Soporte externalizado. _Entregado a `main`._
-- **Hito 1 — Web pública** ✅ — `index.html`, `application.html`, `validation.js` (HTML5 + Tailwind + Schema.org + validación JS). _Entregado a `main`._
+- **Hito 1 — Web pública** ✅ — `index.html`, `application.html`, `validation.js` (HTML5 + Tailwind compilado + Schema.org + validación JS). Marcado de radios y estados ARIA reforzados; SEO técnico y workflow de GitHub Pages añadidos para la evaluación de PageSpeed. _Entregado a `main`._
 - **Hito 2 — Lógica de negocio (TS)** ✅ — `src/` con interfaces (Candidate/Vacancy/SelectionProcess), filtros, búsqueda lineal/binaria, **motor de scoring 0-100**, agregaciones y validaciones. `tsc --noEmit` limpio; demo correcta (scores 100/82/10). _Rama `hito-2-fundamentos-programacion` + PR._
 - **Hito 3 — Talent Pipeline Tracker** ✅ — `uis/talent-pipeline-tracker` (Next.js 14) sobre la API del curso: listado con filtros/búsqueda, detalle con PATCH, notas CRUD, alta/edición. `next build` OK. _Rama `hito-3-talent-pipeline-tracker` + PR._
 - **Hito 4 — Ingeniería impulsada por IA** ✅ — `memory-bank/` + `AGENTS.md` + `.agents/rules` + `.agents/skills`; `uis/website` (web del Hito 1 → componentes React) y `uis/backoffice` (layout propio que **importa** la lógica del Hito 2 vía alias `@logic`, output visible: KPIs + ranking). `next build` OK en ambas. _Rama `milestone-4` + PR._

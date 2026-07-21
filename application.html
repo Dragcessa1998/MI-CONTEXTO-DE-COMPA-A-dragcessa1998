@@ -6,24 +6,10 @@
   <title>Únete a nuestro banco de talento — Nexova</title>
   <meta name="description" content="Regístrate en el banco de talento de Nexova. Comparte tu experiencia profesional, sector de interés, nivel de inglés y disponibilidad para futuras oportunidades laborales." />
   <meta name="theme-color" content="#4f46e5" />
-
-  <!-- Tailwind CSS (Play CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
-              400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
-              800: '#3730a3', 900: '#312e81'
-            }
-          }
-        }
-      }
-    }
-  </script>
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://4geeksacademy.github.io/MI-CONTEXTO-DE-COMPA-A-dragcessa1998/application.html" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body class="bg-slate-50 text-slate-800 antialiased">
@@ -66,9 +52,7 @@
         tu perfil encaje con alguna de nuestras oportunidades actuales o futuras.
       </p>
       <p class="mt-2">
-        Mientras tanto, síguenos en
-        <a class="font-semibold underline underline-offset-2" href="https://linkedin.com/company/nexova" target="_blank" rel="noopener">LinkedIn</a>
-        para estar al día de nuestras vacantes y contenido sobre desarrollo profesional.
+        Conservaremos tus datos para tenerte en cuenta en oportunidades actuales y futuras.
       </p>
       <a href="index.html" class="mt-4 inline-block rounded-lg bg-emerald-600 px-5 py-2.5 font-semibold text-white transition hover:bg-emerald-700">Volver al inicio</a>
     </div>
@@ -180,25 +164,25 @@
         </div>
 
         <!-- Disponibilidad -->
-        <fieldset aria-describedby="error-availability">
+        <fieldset id="availability-group" aria-describedby="error-availability" aria-invalid="false">
           <legend class="block text-sm font-medium text-slate-700">Disponibilidad <span class="text-brand-700" aria-hidden="true">*</span></legend>
           <div class="mt-2 grid gap-2 sm:grid-cols-2">
-            <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5 hover:bg-slate-50">
-              <input type="radio" name="availability" value="Inmediata" class="h-4 w-4 text-brand-600 focus:ring-brand-500" />
-              <span class="text-sm text-slate-700">Inmediata</span>
-            </label>
-            <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5 hover:bg-slate-50">
-              <input type="radio" name="availability" value="1 mes" class="h-4 w-4 text-brand-600 focus:ring-brand-500" />
-              <span class="text-sm text-slate-700">1 mes</span>
-            </label>
-            <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5 hover:bg-slate-50">
-              <input type="radio" name="availability" value="2-3 meses" class="h-4 w-4 text-brand-600 focus:ring-brand-500" />
-              <span class="text-sm text-slate-700">2-3 meses</span>
-            </label>
-            <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5 hover:bg-slate-50">
-              <input type="radio" name="availability" value="Solo explorando" class="h-4 w-4 text-brand-600 focus:ring-brand-500" />
-              <span class="text-sm text-slate-700">Solo explorando</span>
-            </label>
+            <div class="flex items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5 hover:bg-slate-50" data-availability-option>
+              <input id="availability-now" type="radio" name="availability" value="Inmediata" required class="h-4 w-4 text-brand-600 focus:ring-brand-500" />
+              <label for="availability-now" class="flex-1 cursor-pointer text-sm text-slate-700">Inmediata</label>
+            </div>
+            <div class="flex items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5 hover:bg-slate-50" data-availability-option>
+              <input id="availability-one-month" type="radio" name="availability" value="1 mes" class="h-4 w-4 text-brand-600 focus:ring-brand-500" />
+              <label for="availability-one-month" class="flex-1 cursor-pointer text-sm text-slate-700">1 mes</label>
+            </div>
+            <div class="flex items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5 hover:bg-slate-50" data-availability-option>
+              <input id="availability-two-months" type="radio" name="availability" value="2-3 meses" class="h-4 w-4 text-brand-600 focus:ring-brand-500" />
+              <label for="availability-two-months" class="flex-1 cursor-pointer text-sm text-slate-700">2-3 meses</label>
+            </div>
+            <div class="flex items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5 hover:bg-slate-50" data-availability-option>
+              <input id="availability-exploring" type="radio" name="availability" value="Solo explorando" class="h-4 w-4 text-brand-600 focus:ring-brand-500" />
+              <label for="availability-exploring" class="flex-1 cursor-pointer text-sm text-slate-700">Solo explorando</label>
+            </div>
           </div>
           <p id="error-availability" class="mt-1 hidden text-sm text-red-600" role="alert"></p>
         </fieldset>
@@ -223,13 +207,13 @@
 
         <!-- Política de datos -->
         <div>
-          <label class="flex items-start gap-3">
+          <div class="flex items-start gap-3">
             <input id="dataPolicy" name="dataPolicy" type="checkbox" required aria-describedby="error-dataPolicy"
                    class="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-            <span class="text-sm text-slate-700">
+            <label for="dataPolicy" class="cursor-pointer text-sm text-slate-700">
               Acepto la política de tratamiento de datos <span class="text-brand-700" aria-hidden="true">*</span>
-            </span>
-          </label>
+            </label>
+          </div>
           <p id="error-dataPolicy" class="mt-1 hidden text-sm text-red-600" role="alert"></p>
         </div>
       </fieldset>
@@ -250,7 +234,8 @@
 
   <footer class="border-t border-slate-200 bg-white">
     <div class="mx-auto max-w-3xl px-4 py-6 text-center text-sm text-slate-500 sm:px-6">
-      © 2025 Nexova. Todos los derechos reservados.
+      © 2026 Nexova Solutions. Todos los derechos reservados. ·
+      <a class="font-medium hover:text-brand-600" href="mailto:contacto@nexova.com">contacto@nexova.com</a>
     </div>
   </footer>
 
