@@ -28,10 +28,11 @@
 ## Proyecto avanzado: Supplier Directory (FastAPI) — oficial del syllabus
 
 - **Supplier Directory — Lightweight Storage API** ✅ — primer proyecto del track Python: `services/api` (**FastAPI + TinyDB + Pydantic**, gestionado con **uv**). Modelo `Supplier` calcado del CONTEXT oficial de Nexova (Spain/USA, 9 categorías, `active`/`suspended`, regla **moneda↔país**, `rate_updated_at` generado por el sistema). Seeder `uv run seed` idempotente con los 15 proveedores del CONTEXT. Endpoints: POST/GET(+filtros país/categoría)/GET:id/PATCH rate/PATCH status/DELETE, errores 404/422 consistentes, CORS. Frontend: página **/suppliers** del backoffice (tabla, filtros sin recarga, alta con 422 inline, tarifa inline, activar/suspender, badge de estado y aviso de renovación <60 días). Verificado: seeder ×2, 22 checks de endpoints con curl, persistencia tras reinicio, `tsc` + `next build` OK.
+- **Backend Architecture Proposal (12/08/2026)** ✅ — `docs/ARCHITECTURE_PROPOSAL.md` propone un monolito modular FastAPI por dominios, documenta la transición desde Express/TinyDB, routers y endpoints, persistencia, configuración, CORS, convivencia con Next.js, riesgos y criterios medibles para una futura extracción de servicios; fuentes técnicas primarias enlazadas.
 
 ## Próximos pasos previstos
 
-- Track oficial Python/FastAPI restante: **#22-24 Autenticación** (JWT sobre la Supplier API → flujos frontend → reset de contraseña) · **#25 Incident Analyzer** (`incidents-nexova.csv`) · **#27 Architecture Proposal**.
+- Track oficial Python/FastAPI restante: **#22-24 Autenticación** (JWT sobre la Supplier API → flujos frontend → reset de contraseña) · **#25 Incident Analyzer** (`incidents-nexova.csv`).
 - Posible mejora pendiente: conectar también el **tracker standalone** (app del Hito 3) a la API real (el backoffice ya tiene su propia vista de pipeline en `/processes`).
 
 ## Tareas del usuario pendientes (no automatizables por el agente)
