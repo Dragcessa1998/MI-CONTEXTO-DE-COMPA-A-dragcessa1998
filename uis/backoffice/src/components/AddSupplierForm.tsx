@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ApiError } from "@/lib/api";
+import { FormErrorList, FormField, formInputClass } from "@/components/forms/FormPrimitives";
 import {
   suppliersApi,
   type Supplier,
@@ -15,18 +16,6 @@ import {
   CATEGORY_LABELS,
   CURRENCY_BY_COUNTRY,
 } from "@/lib/suppliers";
-
-const inputClass =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-slate-600">{label}</span>
-      {children}
-    </label>
-  );
-}
 
 /**
  * Alta de proveedor → POST /suppliers de la Supplier API (FastAPI).
@@ -109,47 +98,45 @@ export default function AddSupplierForm({
         <span className="hidden text-xs text-slate-400 sm:inline">POST /suppliers · valida Pydantic (422)</span>
       </div>
 
-      {errors.length > 0 && (
-        <div role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 py-3 pl-4 pr-4 text-sm text-rose-700">
-          <ul className="list-disc space-y-1 pl-4">{errors.map((message, index) => <li key={`${index}-${message}`}>{message}</li>)}</ul>
-          <p className="mt-2 text-xs">Corrige los campos y vuelve a pulsar “Registrar proveedor”.</p>
-        </div>
-      )}
+      <FormErrorList
+        messages={errors}
+        instruction="Corrige los campos y vuelve a pulsar “Registrar proveedor”."
+      />
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="Nombre del proveedor *">
-          <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="LinkedIn Talent Solutions" />
-        </Field>
-        <Field label="País del contrato *">
-          <select value={country} onChange={(e) => setCountry(e.target.value as SupplierCountry)} className={inputClass}>
+        <FormField label="Nombre del proveedor *">
+          <input value={name} onChange={(e) => setName(e.target.value)} className={formInputClass} placeholder="LinkedIn Talent Solutions" />
+        </FormField>
+        <FormField label="País del contrato *">
+          <select value={country} onChange={(e) => setCountry(e.target.value as SupplierCountry)} className={formInputClass}>
             {SUPPLIER_COUNTRIES.map((option) => (
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
-        </Field>
-        <Field label="Moneda (según el país)">
-          <input value={currency} readOnly className={`${inputClass} bg-slate-50 text-slate-500`} />
-        </Field>
-        <Field label="Tarifa mensual *">
-          <input type="number" min={0.01} step="0.01" value={monthlyRate} onChange={(e) => setMonthlyRate(e.target.value)} className={inputClass} placeholder="490.00" />
-        </Field>
-        <Field label="Estado *">
-          <select value={status} onChange={(e) => setStatus(e.target.value as SupplierStatus)} className={inputClass}>
+        </FormField>
+        <FormField label="Moneda (según el país)">
+          <input value={currency} readOnly className={`${formInputClass} bg-slate-50 text-slate-500`} />
+        </FormField>
+        <FormField label="Tarifa mensual *">
+          <input type="number" min={0.01} step="0.01" value={monthlyRate} onChange={(e) => setMonthlyRate(e.target.value)} className={formInputClass} placeholder="490.00" />
+        </FormField>
+        <FormField label="Estado *">
+          <select value={status} onChange={(e) => setStatus(e.target.value as SupplierStatus)} className={formInputClass}>
             {SUPPLIER_STATUSES.map((option) => (
               <option key={option} value={option}>{SUPPLIER_STATUS_LABELS[option]}</option>
             ))}
           </select>
-        </Field>
-        <Field label="Renovación del contrato (opcional)">
-          <input type="date" value={renewalDate} onChange={(e) => setRenewalDate(e.target.value)} className={inputClass} />
-        </Field>
-        <Field label="Email de contacto (opcional)">
-          <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={inputClass} placeholder="account@proveedor.com" />
-        </Field>
+        </FormField>
+        <FormField label="Renovación del contrato (opcional)">
+          <input type="date" value={renewalDate} onChange={(e) => setRenewalDate(e.target.value)} className={formInputClass} />
+        </FormField>
+        <FormField label="Email de contacto (opcional)">
+          <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={formInputClass} placeholder="account@proveedor.com" />
+        </FormField>
         <div className="sm:col-span-2 lg:col-span-1">
-          <Field label="Notas (opcional)">
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} className={inputClass} placeholder="Observaciones internas" />
-          </Field>
+          <FormField label="Notas (opcional)">
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} className={formInputClass} placeholder="Observaciones internas" />
+          </FormField>
         </div>
       </div>
 
