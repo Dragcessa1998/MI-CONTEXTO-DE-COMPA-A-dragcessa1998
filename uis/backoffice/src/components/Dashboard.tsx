@@ -66,7 +66,7 @@ export default function Dashboard() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900">Panel de talento</h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Datos en vivo desde la <strong>Nexova Talent API</strong> (Hito 5) — scoring y reportes calculados con la lógica del Hito 2.
           </p>
         </div>
@@ -202,7 +202,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
       <section className="space-y-3">
         <div>
           <h3 className="text-lg font-bold text-slate-900">Ranking para: {vacancy?.title ?? "—"}</h3>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             {vacancy?.companyName ?? ""} · scoring 0-100 vía{" "}
             <code className="rounded bg-slate-100 px-1">GET /vacancies/:id/ranking</code>
           </p>
