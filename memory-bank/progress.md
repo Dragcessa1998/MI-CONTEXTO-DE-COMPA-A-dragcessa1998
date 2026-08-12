@@ -36,10 +36,11 @@
 - **Auditoría de rendimiento frontend (12/08/2026)** ✅ — Lighthouse 13.4.1 en builds de producción (website desktop/mobile y dashboard desktop), con informes JSON/HTML y capturas antes/después. Website mejoró Best Practices 96→100; backoffice mejoró Accessibility 96→100 y Best Practices 96→100, conservando Performance/SEO 100. Se añadieron iconos, se corrigió contraste y se extrajeron `FormField`/`FormErrorList` compartidos. Resultados y límites documentados en `AUDIT.md` y `REPORT.md`.
 - **Plan de telemetría (12/08/2026)** ✅ — catálogo de 18 eventos (5 obligatorios del contexto de inventario de Nexova + 13 oportunidades) con hipótesis, decisiones, propiedad/PII, urgencia stream/batch, muestreo, outbox, retención y exclusiones. Envelope draft-07 versionado con `requestId` y allowlist estricta para cada `event_type` en `docs/telemetry/event-schemas.json`.
 - **Diseño del pipeline semanal (12/08/2026)** ✅ — `PIPELINE_DESIGN.md` especifica el flujo read-only desde cuatro eventos de inventario hasta `reporting.weekly_office_program_performance`: formato JSONB/Parquet/PostgreSQL, Mermaid, dedupe por `eventId`, staging, snapshot, watermark, upsert por grano, logs, quality gates, backfills, SLA y endpoints. Mantiene EUR/USD separados y documenta la ambigüedad count-vs-quantity antes de implementar.
+- **Background Processes / DEV-53 (12/08/2026)** ✅ — cron diario a las 01:15 UTC y proceso independiente `scripts/nightly_export.py`: export CSV atómico, pipeline semanal real como subprocess, estados `job_runs`, lock exclusivamente mediante `processing`, idempotencia por fecha, recuperación de ejecuciones obsoletas y logs estructurados. `job_runs` y `pipeline_runs` permanecen separados. Cinco pruebas cubren éxito, duplicado, fallo, concurrencia real y recuperación; todas pasan.
 
 ## Próximos pasos previstos
 
-- Track oficial Python/FastAPI restante: **#22-24 Autenticación** (JWT sobre la Supplier API → flujos frontend → reset de contraseña) · **#25 Incident Analyzer** (`incidents-nexova.csv`) · **#27 Architecture Proposal**.
+- Continuar con los proyectos oficiales posteriores al pipeline: integración de IA generativa, MCP y sistema multiagente, manteniendo una rama de entrega por proyecto.
 - Posible mejora pendiente: conectar también el **tracker standalone** (app del Hito 3) a la API real (el backoffice ya tiene su propia vista de pipeline en `/processes`).
 
 ## Tareas del usuario pendientes (no automatizables por el agente)

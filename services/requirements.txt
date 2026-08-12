@@ -15,6 +15,7 @@ h11==0.16.0
 idna==3.18
 libpass==1.9.3
 pyasn1==0.6.4
+psycopg[binary]>=3.2,<4
 pycparser==3.0; implementation_name != "PyPy" and platform_python_implementation != "PyPy"
 pydantic==2.13.4
 pydantic-core==2.46.4
