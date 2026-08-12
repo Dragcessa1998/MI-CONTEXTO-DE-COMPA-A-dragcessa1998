@@ -1,7 +1,7 @@
 const API_URL =
   process.env.NEXT_PUBLIC_PLATFORM_API_URL ??
   process.env.NEXT_PUBLIC_SUPPLIERS_API_URL ??
-  "http://localhost:8000";
+  "/platform-api";
 
 export const SESSION_TOKEN_KEY = "nexova_access_token";
 

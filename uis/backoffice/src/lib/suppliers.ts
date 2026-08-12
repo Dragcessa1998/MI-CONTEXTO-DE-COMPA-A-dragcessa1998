@@ -9,7 +9,7 @@
 import { ApiError } from "@/lib/api";
 import { SESSION_TOKEN_KEY } from "@/lib/incidents";
 
-const SUPPLIERS_API_URL = process.env.NEXT_PUBLIC_SUPPLIERS_API_URL ?? "http://localhost:8000";
+const SUPPLIERS_API_URL = process.env.NEXT_PUBLIC_SUPPLIERS_API_URL ?? "/platform-api";
 
 // ----- Dominio (espejo exacto del CONTEXT del supplier-directory) -----
 
