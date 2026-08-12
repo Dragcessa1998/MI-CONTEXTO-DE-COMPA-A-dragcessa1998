@@ -1,4 +1,4 @@
-# Nexova — Authenticated Supplier Directory API
+# Nexova — Operations Platform API
 
 Registro oficial y único de los **proveedores externos** de Nexova (job boards, ATS,
 formación, nóminas, oficinas…), en sustitución de la hoja de cálculo que Patricia Solís
@@ -46,6 +46,38 @@ Rutas principales:
 Las respuestas nunca incluyen la contraseña ni su hash. Token ausente,
 malformado, expirado o perteneciente a un usuario inactivo devuelve `401`; un
 intento de acceder a credenciales ajenas devuelve `403`.
+
+## Gestor centralizado de incidentes
+
+El módulo `/api/incidents` está autenticado y usa exactamente las categorías,
+sedes, orígenes y transiciones de Nexova. La lógica de validación histórica y
+del ciclo de vida vive en `packages/shared/nexova_shared/incidents.py`, y es
+reutilizada por la API y el seeder.
+
+Desde la raíz del monorepo:
+
+```bash
+services/api/.venv/bin/python scripts/seed_incidents.py
+# 100 filas · 96 válidas/insertadas · 4 inválidas sin mostrar emails
+# segunda ejecución: 0 insertadas · 96 omitidas
+```
+
+El `ticket_id` determina el `doc_id` de TinyDB para garantizar idempotencia,
+pero no se almacena ni se expone como campo del incidente. El resumen esperado
+tras sembrar es: estados 27 abiertos, 56 resueltos y 13 descartados; categorías
+49 fallos técnicos, 35 errores de proceso y 12 quejas de cliente.
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| POST | `/api/incidents` | Crea; errores de campos en JSON con `400` |
+| GET | `/api/incidents` | Lista y filtra por status/origin/branch/category |
+| GET | `/api/incidents/summary` | Totales por estado, categoría, origen y sede |
+| GET | `/api/incidents/{id}` | Detalle o `404` |
+| PATCH | `/api/incidents/{id}/status` | Solo transiciones válidas del ciclo de vida |
+
+Las excepciones no controladas responden con un `500` genérico y nunca exponen
+una traza. Un bloqueo reentrante serializa cada operación completa de TinyDB,
+porque FastAPI atiende en paralelo y JSONStorage comparte un cursor de archivo.
 
 ### Solución de problemas (macOS)
 
@@ -102,12 +134,14 @@ services/api/
   auth_models.py    ← contratos separados de credenciales y perfil
   auth_service.py   ← CRUD TinyDB sin acoplarlo a HTTP
   security.py       ← bcrypt, JWT y get_current_user
-  database.py       ← tablas suppliers/users/profiles en TinyDB
+  incident_models.py / incident_service.py
+  database.py       ← tablas suppliers/users/profiles/incidents en TinyDB
   routes/
     auth.py         ← login y usuario autenticado
     users.py        ← registro y CRUD protegido
     profiles.py     ← perfil propio protegido
     suppliers.py    ← seis operaciones protegidas del directorio
+    incidents.py    ← CRUD, filtros, ciclo de vida y resumen
   seed.py           ← carga inicial (uv run seed)
 ```
 

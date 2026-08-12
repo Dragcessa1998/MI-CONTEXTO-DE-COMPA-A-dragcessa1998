@@ -8,7 +8,9 @@ from fastapi.testclient import TestClient
 
 
 API_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(API_DIR))
+sys.path.insert(0, str(REPO_ROOT))
 
 import database  # noqa: E402
 from main import app  # noqa: E402

@@ -1,12 +1,13 @@
 [project]
 name = "nexova-supplier-api"
-version = "2.0.0"
-description = "Supplier Directory de Nexova protegido con JWT, usuarios y perfiles en TinyDB"
+version = "3.0.0"
+description = "API operativa de Nexova: JWT, proveedores e incidentes en TinyDB"
 requires-python = ">=3.11"
 dependencies = [
     "email-validator>=2.2",
     "fastapi>=0.115",
     "libpass[bcrypt]>=1.9",
+    "nexova-shared",
     "python-jose[cryptography]>=3.3",
     "python-multipart>=0.0.20",
     "uvicorn>=0.32",
@@ -22,6 +23,9 @@ dev = [
 
 [project.scripts]
 seed = "seed:main"
+
+[tool.uv.sources]
+nexova-shared = { path = "../../packages/shared", editable = true }
 
 [build-system]
 requires = ["setuptools>=68"]

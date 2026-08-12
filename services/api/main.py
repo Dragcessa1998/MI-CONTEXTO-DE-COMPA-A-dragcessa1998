@@ -21,14 +21,15 @@ from fastapi.responses import JSONResponse
 
 from database import suppliers_table
 from routes.auth import router as auth_router
+from routes.incidents import router as incidents_router
 from routes.profiles import router as profiles_router
 from routes.suppliers import router as suppliers_router
 from routes.users import router as users_router
 
 app = FastAPI(
-    title="Nexova — Authenticated Supplier API",
-    description="Directorio de proveedores protegido con usuarios y perfiles TinyDB y JWT.",
-    version="2.0.0",
+    title="Nexova — Operations Platform API",
+    description="Auth, proveedores e incidentes operativos centralizados sobre FastAPI y TinyDB.",
+    version="3.0.0",
 )
 
 # CORS: el backoffice (uis/backoffice, :3000) consume esta API desde el navegador.
@@ -43,6 +44,7 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(profiles_router)
 app.include_router(suppliers_router)
+app.include_router(incidents_router)
 
 
 def _sanitize_non_finite(value: object) -> object:
@@ -58,11 +60,40 @@ def _sanitize_non_finite(value: object) -> object:
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """422 consistente incluso si la entrada contiene Infinity/NaN: sin este
     handler, FastAPI eco-serializa el valor no finito y el 422 se convierte en 500."""
     detail = _sanitize_non_finite(jsonable_encoder(exc.errors()))
+    if request.url.path.startswith("/api/incidents"):
+        fields: dict[str, str] = {}
+        messages = {
+            "missing": "Este campo es obligatorio",
+            "string_too_short": "El texto es demasiado corto",
+            "string_too_long": "El texto es demasiado largo",
+            "extra_forbidden": "Este campo no está permitido",
+            "int_parsing": "Debe ser un número entero",
+        }
+        for error in exc.errors():
+            location = error.get("loc", ())
+            field = str(location[-1]) if location else "body"
+            message = messages.get(str(error.get("type")), "Valor no válido")
+            if error.get("type") == "value_error":
+                message = str(error.get("msg", "Valor no válido")).replace("Value error, ", "")
+            fields[field] = message
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Datos del incidente no válidos", "fields": fields},
+        )
     return JSONResponse(status_code=422, content={"detail": detail})
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSONResponse:
+    """El cliente nunca recibe detalles internos ni trazas del servidor."""
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "No se pudo completar la operación. Inténtalo de nuevo."},
+    )
 
 
 @app.get("/health", tags=["health"])

@@ -407,13 +407,19 @@ bcrypt = [
 ]
 
 [[package]]
+name = "nexova-shared"
+version = "1.0.0"
+source = { editable = "../../packages/shared" }
+
+[[package]]
 name = "nexova-supplier-api"
-version = "2.0.0"
+version = "3.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "email-validator" },
     { name = "fastapi" },
     { name = "libpass", extra = ["bcrypt"] },
+    { name = "nexova-shared" },
     { name = "pydantic" },
     { name = "python-jose", extra = ["cryptography"] },
     { name = "python-multipart" },
@@ -432,6 +438,7 @@ requires-dist = [
     { name = "email-validator", specifier = ">=2.2" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "libpass", extras = ["bcrypt"], specifier = ">=1.9" },
+    { name = "nexova-shared", editable = "../../packages/shared" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3" },
     { name = "python-multipart", specifier = ">=0.0.20" },
