@@ -33,6 +33,7 @@
 - **Web pública** → `uis/website`; **lógica interna/dashboards** → `uis/backoffice`, con **layouts separados**.
 - **Config por entorno:** variables vía `.env.local` (NO se commitea); cada app incluye `.env.example`.
 - **Desarrollo reproducible:** Docker Compose orquesta un contenedor UI (website + backoffice) y FastAPI; Next actúa como proxy same-origin hacia `http://backend:8000` en la red `nexova-dev`.
+- **Contrato de telemetría:** envelope JSON Schema 1.0.0 en `docs/telemetry/` con `requestId`, allowlists estrictas por evento, outbox para negocio y separación stream/batch por urgencia.
 - **CONTEXT por hito:** `CONTEXT.md` se reemplaza con el contexto del hito actual (`content/contexts/<NN>/CONTEXT-nexova.es.md` del syllabus).
 
 ## Estado del stack por hito

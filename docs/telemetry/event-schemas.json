@@ -1,0 +1,350 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nexova.internal/telemetry/event-envelope-1.0.0.json",
+  "title": "Nexova telemetry event envelope",
+  "description": "Schema 1.0.0. Every event uses an explicit properties allowlist.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "timestamp",
+    "sessionId",
+    "userId",
+    "event_type",
+    "schemaVersion",
+    "requestId",
+    "properties"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "Origin-generated idempotency key." },
+    "timestamp": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$", "description": "UTC occurrence time in ISO 8601." },
+    "sessionId": { "type": ["string", "null"], "minLength": 8, "description": "Opaque rotating session id; null for autonomous jobs." },
+    "userId": { "type": ["string", "null"], "minLength": 1, "description": "Opaque internal user id; null when no human actor exists." },
+    "event_type": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)+$" },
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "requestId": { "type": "string", "minLength": 8 },
+    "properties": { "type": "object" }
+  },
+  "definitions": {
+    "office": { "type": "string", "enum": ["valencia", "miami"] },
+    "technicalOffice": { "type": "string", "enum": ["valencia", "miami", "unknown"] },
+    "productCategory": { "type": "string", "enum": ["training_kit", "certification", "onboarding_equipment"] },
+    "currency": { "type": "string", "enum": ["EUR", "USD"] },
+    "actorRole": { "type": "string", "enum": ["admin", "ld_manager", "hr_manager", "operator", "auditor", "unknown"] },
+    "section": { "type": "string", "enum": ["dashboard", "inventory", "inbound_orders", "outbound_orders", "suppliers", "incidents", "users", "reports", "login", "unknown"] },
+    "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "nonNegativeInteger": { "type": "integer", "minimum": 0 },
+    "positiveInteger": { "type": "integer", "minimum": 1 },
+    "money": { "type": "number", "minimum": 0 },
+    "rate": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "required": ["office", "currency"],
+            "properties": { "office": { "const": "valencia" } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": { "properties": { "currency": { "const": "EUR" } } }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "required": ["office", "currency"],
+            "properties": { "office": { "const": "miami" } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": { "properties": { "currency": { "const": "USD" } } }
+        }
+      }
+    }
+  ],
+  "oneOf": [
+    {
+      "title": "inbound_order_created",
+      "description": "A committed supplier receipt increases material stock.",
+      "x-classification": "mandatory",
+      "x-category": "inventory",
+      "x-delivery": "batch_hourly",
+      "x-sensitive-data": "Opaque internal ids only; no supplier contact or recipient PII.",
+      "properties": {
+        "event_type": { "const": "inbound_order_created" },
+        "properties": {
+          "type": "object", "additionalProperties": false,
+          "required": ["office", "product_id", "product_category", "programme_id", "quantity", "currency", "order_id", "supplier_id", "unit_cost"],
+          "properties": {
+            "office": { "$ref": "#/definitions/office" }, "product_id": { "$ref": "#/definitions/id" }, "product_category": { "$ref": "#/definitions/productCategory" },
+            "programme_id": { "$ref": "#/definitions/id" }, "quantity": { "$ref": "#/definitions/positiveInteger" }, "currency": { "$ref": "#/definitions/currency" },
+            "order_id": { "$ref": "#/definitions/id" }, "supplier_id": { "$ref": "#/definitions/id" }, "unit_cost": { "$ref": "#/definitions/money" }
+          }
+        }
+      }
+    },
+    {
+      "title": "outbound_order_created",
+      "description": "A committed delivery decreases material stock.",
+      "x-classification": "mandatory", "x-category": "inventory", "x-delivery": "stream",
+      "x-sensitive-data": "recipient_type is categorical; recipient identity is forbidden.",
+      "properties": {
+        "event_type": { "const": "outbound_order_created" },
+        "properties": {
+          "type": "object", "additionalProperties": false,
+          "required": ["office", "product_id", "product_category", "programme_id", "quantity", "currency", "order_id", "recipient_type"],
+          "properties": {
+            "office": { "$ref": "#/definitions/office" }, "product_id": { "$ref": "#/definitions/id" }, "product_category": { "$ref": "#/definitions/productCategory" },
+            "programme_id": { "$ref": "#/definitions/id" }, "quantity": { "$ref": "#/definitions/positiveInteger" }, "currency": { "$ref": "#/definitions/currency" },
+            "order_id": { "$ref": "#/definitions/id" }, "recipient_type": { "type": "string", "enum": ["client", "candidate", "consultant", "support_agent"] }
+          }
+        }
+      }
+    },
+    {
+      "title": "stock_threshold_triggered",
+      "description": "Available stock reaches or falls below the configured minimum.",
+      "x-classification": "mandatory", "x-category": "inventory", "x-delivery": "stream",
+      "x-sensitive-data": "No PII.",
+      "properties": {
+        "event_type": { "const": "stock_threshold_triggered" },
+        "properties": {
+          "type": "object", "additionalProperties": false,
+          "required": ["office", "product_id", "product_category", "programme_id", "quantity", "currency", "threshold", "available_quantity"],
+          "properties": {
+            "office": { "$ref": "#/definitions/office" }, "product_id": { "$ref": "#/definitions/id" }, "product_category": { "$ref": "#/definitions/productCategory" },
+            "programme_id": { "$ref": "#/definitions/id" }, "quantity": { "$ref": "#/definitions/nonNegativeInteger" }, "currency": { "$ref": "#/definitions/currency" },
+            "threshold": { "$ref": "#/definitions/nonNegativeInteger" }, "available_quantity": { "$ref": "#/definitions/nonNegativeInteger" }
+          }
+        }
+      }
+    },
+    {
+      "title": "direct_stock_edit_rejected",
+      "description": "Authorization rejects an attempt to bypass order-based stock changes.",
+      "x-classification": "mandatory", "x-category": "inventory_security", "x-delivery": "stream",
+      "x-sensitive-data": "Actor is represented by envelope userId and categorical role only.",
+      "properties": {
+        "event_type": { "const": "direct_stock_edit_rejected" },
+        "properties": {
+          "type": "object", "additionalProperties": false,
+          "required": ["office", "product_id", "product_category", "programme_id", "quantity", "currency", "attempted_operation", "actor_role", "reason_code"],
+          "properties": {
+            "office": { "$ref": "#/definitions/office" }, "product_id": { "$ref": "#/definitions/id" }, "product_category": { "$ref": "#/definitions/productCategory" },
+            "programme_id": { "$ref": "#/definitions/id" }, "quantity": { "type": "integer", "not": { "const": 0 } }, "currency": { "$ref": "#/definitions/currency" },
+            "attempted_operation": { "type": "string", "enum": ["set", "increment", "decrement"] }, "actor_role": { "$ref": "#/definitions/actorRole" },
+            "reason_code": { "type": "string", "enum": ["order_required", "insufficient_permission", "immutable_field"] }
+          }
+        }
+      }
+    },
+    {
+      "title": "kit_cost_variance_detected",
+      "description": "Inbound unit cost exceeds the configured historical variance threshold.",
+      "x-classification": "mandatory", "x-category": "inventory_finance", "x-delivery": "stream",
+      "x-sensitive-data": "Supplier uses an opaque id; no contact details.",
+      "properties": {
+        "event_type": { "const": "kit_cost_variance_detected" },
+        "properties": {
+          "type": "object", "additionalProperties": false,
+          "required": ["office", "product_id", "product_category", "programme_id", "quantity", "currency", "supplier_id", "previous_unit_cost", "current_unit_cost", "variance_percent", "threshold_percent"],
+          "properties": {
+            "office": { "$ref": "#/definitions/office" }, "product_id": { "$ref": "#/definitions/id" }, "product_category": { "$ref": "#/definitions/productCategory" },
+            "programme_id": { "$ref": "#/definitions/id" }, "quantity": { "$ref": "#/definitions/positiveInteger" }, "currency": { "$ref": "#/definitions/currency" },
+            "supplier_id": { "$ref": "#/definitions/id" }, "previous_unit_cost": { "$ref": "#/definitions/money" }, "current_unit_cost": { "$ref": "#/definitions/money" },
+            "variance_percent": { "type": "number" }, "threshold_percent": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    {
+      "title": "order_validation_failed", "description": "An inbound or outbound order fails domain validation.",
+      "x-classification": "identified_opportunity", "x-category": "inventory", "x-delivery": "batch_hourly", "x-sensitive-data": "Coded field and reason only; rejected values are forbidden.",
+      "properties": {
+        "event_type": { "const": "order_validation_failed" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["office", "order_type", "product_id", "programme_id", "error_code", "field_name", "actor_role"],
+          "properties": {
+            "office": { "$ref": "#/definitions/office" }, "order_type": { "type": "string", "enum": ["inbound", "outbound"] }, "product_id": { "$ref": "#/definitions/id" },
+            "programme_id": { "$ref": "#/definitions/id" }, "error_code": { "type": "string", "enum": ["insufficient_stock", "currency_office_mismatch", "invalid_quantity", "unknown_product", "inactive_product", "missing_field"] },
+            "field_name": { "type": "string", "enum": ["product_id", "quantity", "currency", "office", "programme_id", "supplier_id", "recipient_type"] }, "actor_role": { "$ref": "#/definitions/actorRole" }
+          }
+        }
+      }
+    },
+    {
+      "title": "stock_level_viewed", "description": "An operator views a product stock detail.",
+      "x-classification": "identified_opportunity", "x-category": "inventory", "x-delivery": "batch_daily_sampled", "x-sensitive-data": "No PII.",
+      "properties": {
+        "event_type": { "const": "stock_level_viewed" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["office", "product_id", "product_category", "programme_id", "view_source", "below_threshold"],
+          "properties": {
+            "office": { "$ref": "#/definitions/office" }, "product_id": { "$ref": "#/definitions/id" }, "product_category": { "$ref": "#/definitions/productCategory" }, "programme_id": { "$ref": "#/definitions/id" },
+            "view_source": { "type": "string", "enum": ["inventory_list", "product_detail", "order_form", "alert"] }, "below_threshold": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    {
+      "title": "inventory_export_requested", "description": "An operator requests an inventory export.",
+      "x-classification": "identified_opportunity", "x-category": "inventory", "x-delivery": "batch_daily", "x-sensitive-data": "No export content or filter values; bucketed count only.",
+      "properties": {
+        "event_type": { "const": "inventory_export_requested" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["office", "export_format", "filters_count", "row_count_bucket", "actor_role"],
+          "properties": {
+            "office": { "$ref": "#/definitions/office" }, "export_format": { "type": "string", "enum": ["csv", "pdf"] }, "filters_count": { "$ref": "#/definitions/nonNegativeInteger" },
+            "row_count_bucket": { "type": "string", "enum": ["0", "1_50", "51_500", "501_plus"] }, "actor_role": { "$ref": "#/definitions/actorRole" }
+          }
+        }
+      }
+    },
+    {
+      "title": "login_succeeded", "description": "Authentication succeeds.",
+      "x-classification": "identified_opportunity", "x-category": "authentication", "x-delivery": "batch_hourly", "x-sensitive-data": "No email, credential, token, cookie, or IP.",
+      "properties": {
+        "event_type": { "const": "login_succeeded" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["office", "actor_role", "auth_method"],
+          "properties": { "office": { "$ref": "#/definitions/technicalOffice" }, "actor_role": { "$ref": "#/definitions/actorRole" }, "auth_method": { "type": "string", "enum": ["password", "sso", "magic_link"] } }
+        }
+      }
+    },
+    {
+      "title": "login_failed", "description": "Authentication fails with a safe reason code.",
+      "x-classification": "identified_opportunity", "x-category": "authentication", "x-delivery": "stream", "x-sensitive-data": "No entered identifier or credentials; attempt count is bucketed.",
+      "properties": {
+        "event_type": { "const": "login_failed" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["office", "actor_role", "auth_method", "reason_code", "attempt_count_bucket"],
+          "properties": {
+            "office": { "$ref": "#/definitions/technicalOffice" }, "actor_role": { "$ref": "#/definitions/actorRole" }, "auth_method": { "type": "string", "enum": ["password", "sso", "magic_link"] },
+            "reason_code": { "type": "string", "enum": ["invalid_credentials", "inactive_user", "expired_link", "rate_limited", "provider_error"] }, "attempt_count_bucket": { "type": "string", "enum": ["1", "2_3", "4_5", "6_plus"] }
+          }
+        }
+      }
+    },
+    {
+      "title": "session_expired", "description": "An authenticated session expires.",
+      "x-classification": "identified_opportunity", "x-category": "authentication", "x-delivery": "batch_hourly", "x-sensitive-data": "Bucketed age; session token is forbidden.",
+      "properties": {
+        "event_type": { "const": "session_expired" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["office", "actor_role", "section", "session_age_bucket", "had_unsaved_changes"],
+          "properties": {
+            "office": { "$ref": "#/definitions/technicalOffice" }, "actor_role": { "$ref": "#/definitions/actorRole" }, "section": { "$ref": "#/definitions/section" },
+            "session_age_bucket": { "type": "string", "enum": ["under_15m", "15m_1h", "1h_8h", "over_8h"] }, "had_unsaved_changes": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    {
+      "title": "permission_denied", "description": "RBAC denies an authenticated action.",
+      "x-classification": "identified_opportunity", "x-category": "authorization", "x-delivery": "stream", "x-sensitive-data": "Resource is categorical and contains no record id.",
+      "properties": {
+        "event_type": { "const": "permission_denied" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["office", "actor_role", "resource_type", "action", "reason_code"],
+          "properties": {
+            "office": { "$ref": "#/definitions/technicalOffice" }, "actor_role": { "$ref": "#/definitions/actorRole" },
+            "resource_type": { "type": "string", "enum": ["product", "inbound_order", "outbound_order", "supplier", "user", "report"] },
+            "action": { "type": "string", "enum": ["create", "read", "update", "delete", "export"] }, "reason_code": { "type": "string", "enum": ["role_missing", "office_scope", "ownership", "account_inactive"] }
+          }
+        }
+      }
+    },
+    {
+      "title": "api_latency_recorded", "description": "A sampled API request duration is recorded using a route template.",
+      "x-classification": "identified_opportunity", "x-category": "performance", "x-delivery": "stream_windowed", "x-sensitive-data": "No concrete URL, query string, body, or IP.",
+      "properties": {
+        "event_type": { "const": "api_latency_recorded" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["route_template", "method", "status_class", "duration_ms", "office", "sample_rate"],
+          "properties": {
+            "route_template": { "type": "string", "pattern": "^/" }, "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+            "status_class": { "type": "string", "enum": ["2xx", "3xx", "4xx", "5xx"] }, "duration_ms": { "type": "number", "minimum": 0 },
+            "office": { "$ref": "#/definitions/technicalOffice" }, "sample_rate": { "$ref": "#/definitions/rate" }
+          }
+        }
+      }
+    },
+    {
+      "title": "page_load_recorded", "description": "Real-user Web Vitals for a completed navigation.",
+      "x-classification": "identified_opportunity", "x-category": "performance", "x-delivery": "batch_15m", "x-sensitive-data": "Categorical page section only; no URL or user content.",
+      "properties": {
+        "event_type": { "const": "page_load_recorded" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["section", "device_class", "navigation_type", "ttfb_ms", "lcp_ms", "cls", "sample_rate"],
+          "properties": {
+            "section": { "$ref": "#/definitions/section" }, "device_class": { "type": "string", "enum": ["mobile", "desktop", "tablet", "unknown"] },
+            "navigation_type": { "type": "string", "enum": ["navigate", "reload", "back_forward", "prerender"] }, "ttfb_ms": { "type": "number", "minimum": 0 },
+            "lcp_ms": { "type": "number", "minimum": 0 }, "cls": { "type": "number", "minimum": 0 }, "inp_ms": { "type": ["number", "null"], "minimum": 0 }, "sample_rate": { "$ref": "#/definitions/rate" }
+          }
+        }
+      }
+    },
+    {
+      "title": "frontend_error_captured", "description": "An uncaught frontend error is grouped by a sanitized fingerprint.",
+      "x-classification": "identified_opportunity", "x-category": "errors", "x-delivery": "stream", "x-sensitive-data": "No message, stack, URL, request body, or browser identifiers.",
+      "properties": {
+        "event_type": { "const": "frontend_error_captured" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["section", "error_fingerprint", "release", "handled", "office"],
+          "properties": { "section": { "$ref": "#/definitions/section" }, "error_fingerprint": { "$ref": "#/definitions/id" }, "release": { "$ref": "#/definitions/id" }, "handled": { "type": "boolean" }, "office": { "$ref": "#/definitions/technicalOffice" } }
+        }
+      }
+    },
+    {
+      "title": "backend_error_captured", "description": "A server failure is grouped by a sanitized fingerprint.",
+      "x-classification": "identified_opportunity", "x-category": "errors", "x-delivery": "stream", "x-sensitive-data": "No exception message, stack, concrete URL, query, or body.",
+      "properties": {
+        "event_type": { "const": "backend_error_captured" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["route_template", "method", "error_fingerprint", "release", "office", "retryable"],
+          "properties": {
+            "route_template": { "type": "string", "pattern": "^/" }, "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+            "error_fingerprint": { "$ref": "#/definitions/id" }, "release": { "$ref": "#/definitions/id" }, "office": { "$ref": "#/definitions/technicalOffice" }, "retryable": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    {
+      "title": "section_viewed", "description": "A debounced backoffice section view.",
+      "x-classification": "identified_opportunity", "x-category": "navigation", "x-delivery": "batch_daily", "x-sensitive-data": "Sections are enumerated; no URL, title, or query string.",
+      "properties": {
+        "event_type": { "const": "section_viewed" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["section", "previous_section", "office", "actor_role"],
+          "properties": { "section": { "$ref": "#/definitions/section" }, "previous_section": { "$ref": "#/definitions/section" }, "office": { "$ref": "#/definitions/technicalOffice" }, "actor_role": { "$ref": "#/definitions/actorRole" } }
+        }
+      }
+    },
+    {
+      "title": "flow_abandoned", "description": "A user leaves a defined flow and does not return before the timeout.",
+      "x-classification": "identified_opportunity", "x-category": "navigation", "x-delivery": "batch_hourly", "x-sensitive-data": "No field values; elapsed time is bucketed.",
+      "properties": {
+        "event_type": { "const": "flow_abandoned" },
+        "properties": { "type": "object", "additionalProperties": false,
+          "required": ["flow_name", "last_step", "elapsed_ms_bucket", "validation_error_count", "office", "actor_role"],
+          "properties": {
+            "flow_name": { "type": "string", "enum": ["inbound_order_create", "outbound_order_create", "product_create", "inventory_export"] },
+            "last_step": { "type": "string", "enum": ["start", "product", "quantity", "counterparty", "review", "submit"] },
+            "elapsed_ms_bucket": { "type": "string", "enum": ["under_30s", "30s_2m", "2m_10m", "over_10m"] }, "validation_error_count": { "$ref": "#/definitions/nonNegativeInteger" },
+            "office": { "$ref": "#/definitions/technicalOffice" }, "actor_role": { "$ref": "#/definitions/actorRole" }
+          }
+        }
+      }
+    }
+  ]
+}
