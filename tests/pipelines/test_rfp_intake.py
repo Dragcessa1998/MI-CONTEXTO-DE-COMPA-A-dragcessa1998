@@ -7,7 +7,11 @@ from shutil import copy2
 import pytest
 
 from data.pipelines.rfp_intake import run_rfp_intake
-from data.pipelines.rfp_intake.agents import department_worker, extract_metadata
+from data.pipelines.rfp_intake.agents import (
+    department_worker,
+    extract_metadata,
+    select_department_context,
+)
 
 
 DEFAULT_SAMPLES = (
@@ -73,3 +77,18 @@ def test_worker_keeps_missing_values_as_open_questions() -> None:
     assert "Confirmar presupuesto" in section.open_questions[0]
     assert any("volumen exacto" in question for question in section.open_questions)
     assert not any("40" in aspect for aspect in section.key_aspects)
+
+
+def test_worker_receives_only_department_relevant_extracts() -> None:
+    markdown = (
+        "# RFP\n\nNecesitamos formación en liderazgo para 20 participantes. "
+        "También requerimos soporte 24/7 con 8 agentes y SLA de respuesta."
+    )
+
+    training_context = select_department_context("capacitacion", markdown)
+    support_context = select_department_context("soporte", markdown)
+
+    assert "20 participantes" in training_context
+    assert "8 agentes" not in training_context
+    assert "8 agentes" in support_context
+    assert "20 participantes" not in support_context

@@ -14,6 +14,7 @@ from data.pipelines.rfp_intake.agents import (
     department_worker,
     extract_metadata,
     orchestrate,
+    select_department_context,
     synthesize,
 )
 from data.pipelines.rfp_intake.document import convert_pdf_to_markdown
@@ -23,6 +24,7 @@ from data.pipelines.rfp_intake.models import DepartmentSection, IntakeResult, Rf
 class RfpIntakeState(TypedDict, total=False):
     pdf_path: str
     markdown: str
+    department_context: str
     markdown_path: str
     is_rfp: bool
     classification_reason: str
@@ -67,10 +69,10 @@ def fan_out_workers(state: RfpIntakeState) -> list[Send]:
             "department_worker",
             {
                 "pdf_path": state["pdf_path"],
-                "markdown": state["markdown"],
                 "markdown_path": state["markdown_path"],
                 "metadata": state["metadata"],
                 "department_id": department_id,
+                "department_context": select_department_context(department_id, state["markdown"]),
                 "sections": [],
             },
         )
@@ -82,7 +84,7 @@ def worker(state: RfpIntakeState) -> dict[str, Any]:
     section = department_worker(
         state["department_id"],  # type: ignore[arg-type]
         RfpMetadata.model_validate(state["metadata"]),
-        state["markdown"],
+        state["department_context"],
     )
     return {"sections": [section.model_dump(mode="json")]}
 

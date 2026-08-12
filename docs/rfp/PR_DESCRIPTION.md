@@ -30,9 +30,24 @@ Para incluir la persistencia real, define `TEST_POSTGRES_DATABASE_URL` con una b
 ## Evidencia
 
 - 55 pruebas de API aprobadas, incluida ida y vuelta real en PostgreSQL 17 y migración de estados anteriores.
-- 17 pruebas del pipeline aprobadas con las tres solicitudes oficiales.
+- 18 pruebas del pipeline aprobadas con las tres solicitudes oficiales y aislamiento de contexto por worker.
 - Build de producción del backoffice aprobado.
 - Vantex activa Selección y Capacitación; NubeSoft activa Soporte; HireStream se descarta.
+
+Salida real resumida de `CONTEXT-nexova-request-1.pdf` (Vantex):
+
+```json
+{
+  "classification": {"is_rfp": true},
+  "client_name": "Vantex Retail Group, S.A.",
+  "client_hq": "España",
+  "currency": "EUR",
+  "volumes": {"roles": 5, "participants": 40},
+  "departments_needed": ["seleccion", "capacitacion"],
+  "contacts": ["Javier Almeida", "Elena Vargas"],
+  "open_question": "Confirmar presupuesto o rango económico disponible."
+}
+```
 
 ## Riesgos y despliegue
 

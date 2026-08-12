@@ -146,13 +146,28 @@ def orchestrate(metadata: RfpMetadata) -> list[DepartmentId]:
     return list(metadata.departments_needed)
 
 
+def select_department_context(department_id: DepartmentId, markdown: str) -> str:
+    """Reduce el documento a extractos del workstream antes de entregarlo al worker."""
+    terms = TERMS[department_id]
+    excerpts = [
+        sentence
+        for sentence in _sentences(markdown)
+        if any(term in sentence.lower() for term in terms)
+    ]
+    return "\n".join(excerpts)
+
+
 def department_worker(
     department_id: DepartmentId,
     metadata: RfpMetadata,
-    markdown: str,
+    department_context: str,
 ) -> DepartmentSection:
     terms = TERMS[department_id]
-    excerpts = [sentence for sentence in _sentences(markdown) if any(term in sentence.lower() for term in terms)]
+    excerpts = [
+        sentence
+        for sentence in _sentences(department_context)
+        if any(term in sentence.lower() for term in terms)
+    ]
     key_aspects = excerpts[:8]
     open_questions: list[str] = []
     if metadata.budget_range is None:

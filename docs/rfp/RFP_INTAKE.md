@@ -16,7 +16,7 @@
 | `capacitacion` | Elena Vargas | Formación, training, liderazgo o participantes |
 | `soporte` | Roberto Díaz | Soporte externalizado, agentes, 24/7 o SLA |
 
-Los workers reciben metadatos compartidos y sólo extractos relacionados con su departamento. Si falta presupuesto, fecha o volumen, añaden una pregunta abierta; nunca inventan cifras. El handoff de Parte 2 es el conjunto persistido de `DepartmentSection.key_aspects` y `open_questions` asociado al mismo `rfp_id`.
+El fan-out filtra primero el Markdown y cada worker recibe metadatos compartidos más únicamente los extractos relacionados con su departamento; el documento completo no forma parte de su estado. Si falta presupuesto, fecha o volumen, añaden una pregunta abierta; nunca inventan cifras. El handoff de Parte 2 es el conjunto persistido de `DepartmentSection.key_aspects` y `open_questions` asociado al mismo `rfp_id`.
 
 ## Evidencia sobre los PDF oficiales
 
@@ -50,7 +50,7 @@ esa prueba de integración, nunca se sustituye PostgreSQL por SQLite o TinyDB.
 El 12/08/2026 se ejecutaron las suites con los tres PDF oficiales y PostgreSQL 17 real:
 
 - API y persistencia: **55 pruebas aprobadas**, incluida la migración de estados anteriores.
-- Pipeline y routing: **17 pruebas aprobadas**.
+- Pipeline y routing: **18 pruebas aprobadas**, incluido aislamiento de contexto por worker.
 - Backoffice Next.js: compilación de producción aprobada.
 
 ## Decisiones y recuperación
