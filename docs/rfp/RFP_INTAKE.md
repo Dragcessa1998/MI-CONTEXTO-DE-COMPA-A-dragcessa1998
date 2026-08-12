@@ -2,9 +2,9 @@
 
 ## Arquitectura
 
-- `POST /api/rfps` vive en el backend FastAPI existente, guarda el PDF en `data/raw/rfps/`, crea el ticket `analizando`, responde **202** y programa el trabajo en background.
+- `POST /api/rfps` vive en el backend FastAPI existente, guarda el PDF en `data/raw/rfps/`, crea el ticket `analyzing`, responde **202** y programa el trabajo en background.
 - `data/pipelines/rfp_intake/` contiene el grafo dedicado: conversión PDF→Markdown → clasificador → extracción → orquestador → workers paralelos → synthesizer.
-- `GET /api/rfps/{ticket_id}` permite polling; el resultado termina en `analisis_completo` o `descartado`.
+- `GET /api/rfps/{ticket_id}` permite polling; el resultado termina en `intake_complete` o `discarded`.
 - `uis/backoffice/rfps` implementa subida, lista de tickets, polling y desglose por departamento.
 - `rfp_tickets`, `rfp_metadata` y `rfp_department_sections` se persisten exclusivamente en PostgreSQL/Supabase mediante la migración `002_create_rfp_intake.sql`. TinyDB no participa.
 
@@ -49,7 +49,7 @@ esa prueba de integración, nunca se sustituye PostgreSQL por SQLite o TinyDB.
 
 El 12/08/2026 se ejecutaron las suites con los tres PDF oficiales y PostgreSQL 17 real:
 
-- API y persistencia: **54 pruebas aprobadas**.
+- API y persistencia: **55 pruebas aprobadas**, incluida la migración de estados anteriores.
 - Pipeline y routing: **17 pruebas aprobadas**.
 - Backoffice Next.js: compilación de producción aprobada.
 
@@ -57,5 +57,5 @@ El 12/08/2026 se ejecutaron las suites con los tres PDF oficiales y PostgreSQL 1
 
 - Un departamento desconocido no se activa; queda fuera de la allowlist y debe tratarse como pregunta abierta en una ampliación.
 - Un falso negativo conserva PDF, ticket y razón de clasificación para revisión.
-- Si un worker falla, el ticket conserva `analizando` más `processing_error=processing_failed`, lo que distingue un job interrumpido de uno activo.
+- Si un worker falla, el ticket conserva `analyzing` más `processing_error=processing_failed`, lo que distingue un job interrumpido de uno activo.
 - La Parte 1 usa `BackgroundTasks` porque el volumen inicial es bajo; para producción, el contrato de ticket permanece igual al mover el runner a una cola duradera.

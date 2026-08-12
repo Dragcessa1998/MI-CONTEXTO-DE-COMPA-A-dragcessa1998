@@ -2,7 +2,7 @@ import { SESSION_TOKEN_KEY } from "@/lib/incidents";
 
 const API_URL = process.env.NEXT_PUBLIC_PLATFORM_API_URL ?? "/platform-api";
 
-export type RfpStatus = "analizando" | "descartado" | "analisis_completo";
+export type RfpStatus = "analyzing" | "discarded" | "intake_complete";
 
 export interface RfpMetadata {
   client_name: string;

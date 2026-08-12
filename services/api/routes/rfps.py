@@ -61,7 +61,7 @@ async def upload_rfp(
     background_tasks.add_task(_run_background, ticket["ticket_id"], str(target), repository)
     return {
         "ticket_id": ticket["ticket_id"],
-        "status": "analizando",
+        "status": "analyzing",
         "status_url": f"/api/rfps/{ticket['ticket_id']}",
     }
 

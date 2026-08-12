@@ -30,7 +30,7 @@ class MemoryRfpRepository:
         ticket = {
             "ticket_id": ticket_id,
             "rfp_id": str(uuid4()),
-            "status": "analizando",
+            "status": "analyzing",
             "raw_pdf_path": raw_pdf_path,
             "markdown_path": None,
             "classification_reason": None,
@@ -54,7 +54,7 @@ class MemoryRfpRepository:
     def save_result(self, ticket_id: str, result: IntakeResult) -> None:
         ticket = self.tickets[ticket_id]
         ticket.update({
-            "status": "analisis_completo" if result.classification.is_rfp else "descartado",
+            "status": "intake_complete" if result.classification.is_rfp else "discarded",
             "markdown_path": result.markdown_path,
             "classification_reason": result.classification.reason,
             "sales_summary": result.sales_summary,
@@ -97,7 +97,7 @@ def test_upload_returns_ticket_and_persists_full_analysis(
     detail = client.get(f"/api/rfps/{ticket_id}")
     assert detail.status_code == 200
     body = detail.json()
-    assert body["status"] == "analisis_completo"
+    assert body["status"] == "intake_complete"
     assert body["metadata"]["departments_needed"] == ["seleccion", "capacitacion"]
     assert {section["contact"] for section in body["sections"]} == {"Javier Almeida", "Elena Vargas"}
     assert Path(body["raw_pdf_path"]).is_file()
@@ -124,6 +124,6 @@ def test_invalid_business_document_becomes_discarded(
         files={"file": ("vendor.pdf", _sample("CONTEXT-nexova-request-3.pdf"), "application/pdf")},
     )
     ticket = client.get(f"/api/rfps/{response.json()['ticket_id']}").json()
-    assert ticket["status"] == "descartado"
+    assert ticket["status"] == "discarded"
     assert ticket["sections"] == []
     assert "pitch de proveedor" in ticket["classification_reason"]

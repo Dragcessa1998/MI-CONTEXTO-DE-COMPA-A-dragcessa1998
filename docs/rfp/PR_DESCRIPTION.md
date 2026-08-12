@@ -2,7 +2,7 @@
 
 ## Qué cambia
 
-- Añade `POST /api/rfps`, listado y detalle con ticket asíncrono y polling.
+- Añade `POST /api/rfps`, listado y detalle con ticket asíncrono y polling de `analyzing` a `intake_complete` o `discarded`.
 - Convierte PDF a Markdown y ejecuta un grafo LangGraph classifier → orchestrator → workers paralelos → synthesizer.
 - Enruta exclusivamente a Selección, Capacitación y Soporte con sus responsables Nexova.
 - Persiste tickets, metadatos JSONB y secciones sólo en PostgreSQL/Supabase.
@@ -29,7 +29,7 @@ Para incluir la persistencia real, define `TEST_POSTGRES_DATABASE_URL` con una b
 
 ## Evidencia
 
-- 54 pruebas de API aprobadas, incluida ida y vuelta real en PostgreSQL 17.
+- 55 pruebas de API aprobadas, incluida ida y vuelta real en PostgreSQL 17 y migración de estados anteriores.
 - 17 pruebas del pipeline aprobadas con las tres solicitudes oficiales.
 - Build de producción del backoffice aprobado.
 - Vantex activa Selección y Capacitación; NubeSoft activa Soporte; HireStream se descarta.

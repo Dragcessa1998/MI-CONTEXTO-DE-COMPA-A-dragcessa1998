@@ -47,7 +47,7 @@ class PostgresRfpRepository:
         with self._connect() as connection:
             row = connection.execute(
                 "INSERT INTO rfp_tickets (ticket_id,rfp_id,status,raw_pdf_path) "
-                "VALUES (%s,%s,'analizando',%s) RETURNING *",
+                "VALUES (%s,%s,'analyzing',%s) RETURNING *",
                 (ticket_id, rfp_id, raw_pdf_path),
             ).fetchone()
             connection.commit()
@@ -82,7 +82,7 @@ class PostgresRfpRepository:
     def save_result(self, ticket_id: str, result: IntakeResult) -> None:
         from psycopg.types.json import Jsonb
 
-        status = "analisis_completo" if result.classification.is_rfp else "descartado"
+        status = "intake_complete" if result.classification.is_rfp else "discarded"
         with self._connect() as connection:
             ticket = connection.execute(
                 "SELECT rfp_id FROM rfp_tickets WHERE ticket_id=%s FOR UPDATE",
@@ -136,7 +136,7 @@ class PostgresRfpRepository:
             connection.commit()
 
     def mark_failed(self, ticket_id: str) -> None:
-        """Conserva `analizando` pero señala que ya no hay job activo para permitir retry."""
+        """Conserva `analyzing` pero señala que ya no hay job activo para permitir retry."""
         with self._connect() as connection:
             connection.execute(
                 "UPDATE rfp_tickets SET processing_error='processing_failed',updated_at=NOW() WHERE ticket_id=%s",

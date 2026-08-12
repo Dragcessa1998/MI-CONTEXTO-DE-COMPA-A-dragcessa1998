@@ -6,9 +6,9 @@ import { SESSION_TOKEN_KEY, incidentsApi } from "@/lib/incidents";
 import { RfpApiError, rfpsApi, type RfpStatus, type RfpTicket } from "@/lib/rfps";
 
 const STATUS_LABELS: Record<RfpStatus, string> = {
-  analizando: "Analizando",
-  descartado: "Descartado",
-  analisis_completo: "Análisis completo",
+  analyzing: "Analizando",
+  discarded: "Descartado",
+  intake_complete: "Análisis completo",
 };
 
 export default function RfpIntake() {
@@ -51,7 +51,7 @@ export default function RfpIntake() {
   useEffect(() => { if (token) void loadTickets(); }, [loadTickets, token]);
 
   useEffect(() => {
-    if (!selected || selected.status !== "analizando" || selected.processing_error) return;
+    if (!selected || selected.status !== "analyzing" || selected.processing_error) return;
     const timer = window.setInterval(async () => {
       try {
         const detail = await rfpsApi.detail(selected.ticket_id);
@@ -164,7 +164,7 @@ function TicketDetail({ ticket }: { ticket: RfpTicket | null }) {
   return <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-mono text-slate-500">{ticket.ticket_id}</p><h3 className="text-xl font-bold text-slate-900">{ticket.metadata?.client_name ?? "Documento recibido"}</h3></div><Status status={ticket.status} error={ticket.processing_error} /></div>
     {ticket.processing_error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">El análisis se interrumpió. El PDF y el ticket se conservaron para reintento.</p>}
-    {ticket.status === "analizando" && !ticket.processing_error && <p className="animate-pulse rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Conversión, clasificación y workers en curso…</p>}
+    {ticket.status === "analyzing" && !ticket.processing_error && <p className="animate-pulse rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Conversión, clasificación y workers en curso…</p>}
     {ticket.classification_reason && <p className="text-sm text-slate-600"><strong>Clasificación:</strong> {ticket.classification_reason}</p>}
     {ticket.metadata && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Metric label="Sede" value={ticket.metadata.client_hq} /><Metric label="Moneda" value={ticket.metadata.currency} /><Metric label="Fecha límite" value={ticket.metadata.deadline ?? "Por confirmar"} /><Metric label="Palabras" value={String(ticket.metadata.readability.word_count)} />
@@ -178,7 +178,7 @@ function TicketDetail({ ticket }: { ticket: RfpTicket | null }) {
   </section>;
 }
 
-function Status({ status, error }: { status: RfpStatus; error: string | null }) { const label = error ? "Error de proceso" : STATUS_LABELS[status]; return <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${error ? "bg-rose-100 text-rose-700" : status === "analisis_completo" ? "bg-emerald-100 text-emerald-700" : status === "descartado" ? "bg-slate-200 text-slate-700" : "bg-blue-100 text-blue-700"}`}>{label}</span>; }
+function Status({ status, error }: { status: RfpStatus; error: string | null }) { const label = error ? "Error de proceso" : STATUS_LABELS[status]; return <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${error ? "bg-rose-100 text-rose-700" : status === "intake_complete" ? "bg-emerald-100 text-emerald-700" : status === "discarded" ? "bg-slate-200 text-slate-700" : "bg-blue-100 text-blue-700"}`}>{label}</span>; }
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-semibold uppercase text-slate-500">{label}</p><p className="mt-1 font-bold text-slate-900">{value}</p></div>; }
 function Retry({ message, retry }: { message: string; retry: () => Promise<void> }) { return <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{message}<button onClick={() => void retry()} className="ml-3 font-bold underline">Reintentar</button></div>; }
 const inputClass = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";

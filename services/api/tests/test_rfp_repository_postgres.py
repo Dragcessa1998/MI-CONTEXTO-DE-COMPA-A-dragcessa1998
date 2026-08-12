@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from uuid import uuid4
 
 import pytest
 
@@ -21,6 +22,39 @@ def test_repository_rejects_non_postgres_databases() -> None:
 @pytest.mark.skipif(not DATABASE_URL, reason="TEST_POSTGRES_DATABASE_URL no configurada")
 def test_repository_round_trip_in_real_postgres() -> None:
     repository = PostgresRfpRepository(DATABASE_URL or "")
+    with repository._connect() as connection:
+        connection.execute("TRUNCATE rfp_tickets CASCADE")
+        connection.commit()
+
+
+@pytest.mark.skipif(not DATABASE_URL, reason="TEST_POSTGRES_DATABASE_URL no configurada")
+def test_legacy_spanish_statuses_are_migrated() -> None:
+    import psycopg
+
+    with psycopg.connect(DATABASE_URL or "") as connection:
+        connection.execute("DROP TABLE IF EXISTS rfp_department_sections, rfp_metadata, rfp_tickets CASCADE")
+        connection.execute(
+            "CREATE TABLE rfp_tickets ("
+            "ticket_id UUID PRIMARY KEY, rfp_id UUID NOT NULL UNIQUE, "
+            "status TEXT NOT NULL CHECK (status IN ('analizando','descartado','analisis_completo')), "
+            "raw_pdf_path TEXT NOT NULL, markdown_path TEXT, classification_reason TEXT, "
+            "sales_summary TEXT, processing_error TEXT, "
+            "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
+        )
+        for status in ("analizando", "descartado", "analisis_completo"):
+            connection.execute(
+                "INSERT INTO rfp_tickets (ticket_id,rfp_id,status,raw_pdf_path) VALUES (%s,%s,%s,%s)",
+                (str(uuid4()), str(uuid4()), status, f"/tmp/{status}.pdf"),
+            )
+        connection.commit()
+
+    repository = PostgresRfpRepository(DATABASE_URL or "")
+    assert {ticket["status"] for ticket in repository.list_tickets()} == {
+        "analyzing",
+        "discarded",
+        "intake_complete",
+    }
+
     with repository._connect() as connection:
         connection.execute("TRUNCATE rfp_tickets CASCADE")
         connection.commit()
@@ -71,7 +105,7 @@ def test_repository_round_trip_in_real_postgres() -> None:
 
     persisted = repository.get_ticket(ticket["ticket_id"])
     assert persisted is not None
-    assert persisted["status"] == "analisis_completo"
+    assert persisted["status"] == "intake_complete"
     assert persisted["metadata"]["volumes"] == {"roles": 5, "participants": 40}
     assert {section["contact"] for section in persisted["sections"]} == {
         "Javier Almeida",
