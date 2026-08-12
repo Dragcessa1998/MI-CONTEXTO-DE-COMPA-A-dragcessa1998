@@ -1,0 +1,57 @@
+[
+  {
+    "id": "service-headhunting",
+    "question": "¿Qué incluye el servicio de headhunting ejecutivo y cuánto suele tardar?",
+    "expected_source_document": "service-lines"
+  },
+  {
+    "id": "service-support-minimum",
+    "question": "¿Cuál es el tamaño mínimo de un equipo de soporte externalizado?",
+    "expected_source_document": "service-lines"
+  },
+  {
+    "id": "service-training-modalities",
+    "question": "¿La formación corporativa puede impartirse en modalidad híbrida?",
+    "expected_source_document": "service-lines"
+  },
+  {
+    "id": "pricing-training-eight-weeks",
+    "question": "¿Cuánto cuesta un programa de formación de 8 semanas para 15 personas?",
+    "expected_source_document": "pricing-model"
+  },
+  {
+    "id": "pricing-outsourcing",
+    "question": "¿Qué tarifa mensual tiene cada agente de soporte y cuál es el contrato mínimo?",
+    "expected_source_document": "pricing-model"
+  },
+  {
+    "id": "sla-executive",
+    "question": "¿Cuál es el tiempo de entrega de una búsqueda C-level y cuántos candidatos incluye la terna?",
+    "expected_source_document": "hiring-process-sla"
+  },
+  {
+    "id": "sla-escalation",
+    "question": "¿Qué debe ocurrir si en cuatro semanas no aparece ningún candidato ejecutivo cualificado?",
+    "expected_source_document": "hiring-process-sla"
+  },
+  {
+    "id": "objection-price",
+    "question": "El 22% me parece caro, ¿puedes aplicarme un descuento?",
+    "expected_source_document": "objection-handling"
+  },
+  {
+    "id": "objection-payment",
+    "question": "¿Puedo pagar todo al final cuando se incorpore el candidato?",
+    "expected_source_document": "objection-handling"
+  },
+  {
+    "id": "objection-shortlist",
+    "question": "¿Qué pasa si la terna presentada no me convence?",
+    "expected_source_document": "objection-handling"
+  },
+  {
+    "id": "objection-competitors",
+    "question": "¿Habéis trabajado con competidores directos de mi empresa?",
+    "expected_source_document": "objection-handling"
+  }
+]

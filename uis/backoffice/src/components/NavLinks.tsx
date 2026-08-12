@@ -7,6 +7,7 @@ const NAV = [
   { label: "Procesos", href: "/processes" },
   { label: "Proveedores", href: "/suppliers" },
   { label: "Incidentes", href: "/incidents" },
+  { label: "Conocimiento", href: "/knowledge" },
 ];
 
 /** Enlaces de la barra lateral con resaltado de la ruta activa. */

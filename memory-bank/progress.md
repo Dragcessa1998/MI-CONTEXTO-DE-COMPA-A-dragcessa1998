@@ -37,10 +37,12 @@
 - **Plan de telemetría (12/08/2026)** ✅ — catálogo de 18 eventos (5 obligatorios del contexto de inventario de Nexova + 13 oportunidades) con hipótesis, decisiones, propiedad/PII, urgencia stream/batch, muestreo, outbox, retención y exclusiones. Envelope draft-07 versionado con `requestId` y allowlist estricta para cada `event_type` en `docs/telemetry/event-schemas.json`.
 - **Diseño del pipeline semanal (12/08/2026)** ✅ — `PIPELINE_DESIGN.md` especifica el flujo read-only desde cuatro eventos de inventario hasta `reporting.weekly_office_program_performance`: formato JSONB/Parquet/PostgreSQL, Mermaid, dedupe por `eventId`, staging, snapshot, watermark, upsert por grano, logs, quality gates, backfills, SLA y endpoints. Mantiene EUR/USD separados y documenta la ambigüedad count-vs-quantity antes de implementar.
 - **Background Processes / DEV-53 (12/08/2026)** ✅ — cron diario a las 01:15 UTC y proceso independiente `scripts/nightly_export.py`: export CSV atómico, pipeline semanal real como subprocess, estados `job_runs`, lock exclusivamente mediante `processing`, idempotencia por fecha, recuperación de ejecuciones obsoletas y logs estructurados. `job_runs` y `pipeline_runs` permanecen separados. Cinco pruebas cubren éxito, duplicado, fallo, concurrencia real y recuperación; todas pasan.
+- **Prerrequisito RAG comercial (12/08/2026)** 🟡 — implementación separada de chunking/embeddings, colección Qdrant `nexova_knowledge`, retrieval con umbral, generación fundamentada mediante Responses API, endpoint `/knowledge/query` y vista `/knowledge`. Los cuatro documentos Nexova y 11 preguntas Recall@3 están versionados; 54 pruebas backend pasan y el backoffice compila con 9 páginas. La indexación/evaluación real sigue pendiente: la clave local está configurada e ignorada, pero OpenAI devolvió `credit_balance_exhausted` antes de completar el corpus. No existe todavía evidencia real de Recall@3 ni de respuesta generada.
 
 ## Próximos pasos previstos
 
 - Continuar con los proyectos oficiales posteriores al pipeline: integración de IA generativa, MCP y sistema multiagente, manteniendo una rama de entrega por proyecto.
+- Añadir saldo de API y ejecutar `scripts/setup_rag.py`, `scripts/evaluate_rag.py` y una consulta manual antes de iniciar el agente LangGraph.
 - Posible mejora pendiente: conectar también el **tracker standalone** (app del Hito 3) a la API real (el backoffice ya tiene su propia vista de pipeline en `/processes`).
 
 ## Tareas del usuario pendientes (no automatizables por el agente)

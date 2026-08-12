@@ -35,6 +35,7 @@
 - **Desarrollo reproducible:** Docker Compose orquesta un contenedor UI (website + backoffice) y FastAPI; Next actúa como proxy same-origin hacia `http://backend:8000` en la red `nexova-dev`.
 - **Contrato de telemetría:** envelope JSON Schema 1.0.0 en `docs/telemetry/` con `requestId`, allowlists estrictas por evento, outbox para negocio y separación stream/batch por urgencia.
 - **Procesos nocturnos:** cron del sistema ejecuta `scripts/nightly_export.py` fuera de FastAPI. PostgreSQL separa `orchestration.job_runs` (lock/idempotencia/export) de `reporting.pipeline_runs` (ETL). `processing` es el único lock; el CSV es sólo backup y el pipeline lee `telemetry_events`.
+- **RAG comercial:** los documentos Nexova se fragmentan en `data/process/rag.py`, se vectorizan con `text-embedding-3-small` y se almacenan en la colección Qdrant `nexova_knowledge`. `data/pipelines/rag.py` mantiene separados retrieval y generación mediante Responses API (`gpt-5.6-luna` por defecto). La API y el backoffice sólo consumen `query()`; no duplican embeddings ni retrieval.
 - **CONTEXT por hito:** `CONTEXT.md` se reemplaza con el contexto del hito actual (`content/contexts/<NN>/CONTEXT-nexova.es.md` del syllabus).
 
 ## Estado del stack por hito
