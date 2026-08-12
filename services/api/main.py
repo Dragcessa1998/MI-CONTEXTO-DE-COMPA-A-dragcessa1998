@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from database import suppliers_table
+from routes.agent import router as agent_router
 from routes.auth import router as auth_router
 from routes.incidents import router as incidents_router
 from routes.knowledge import router as knowledge_router
@@ -47,6 +48,7 @@ app.include_router(profiles_router)
 app.include_router(suppliers_router)
 app.include_router(incidents_router)
 app.include_router(knowledge_router)
+app.include_router(agent_router)
 
 
 def _sanitize_non_finite(value: object) -> object:
