@@ -60,8 +60,11 @@ captura solicitada de `docker compose ps`.
 
 ### Validación realizada el 12/08/2026
 
-- Docker Compose `v5.1.4`: `config --quiet` correcto con `.env.example`; expone
+- Docker Compose `v5.4.0`: `config --quiet` correcto con `.env.example`; expone
   exactamente `backend`, `ui` y la red `nexova-dev`.
+- Build real completado desde cero sobre Docker Engine `28.4.0`: las imágenes
+  `nexova-development-backend` y `nexova-development-ui` se construyeron sin
+  errores y ambos servicios quedaron levantados con Compose.
 - `services/requirements.txt` instalado desde cero en un entorno Python 3.13;
   reutiliza `packages/shared` en editable y respeta las versiones del lockfile.
 - `tsc --noEmit` y build de producción correctos en website y backoffice.
@@ -69,9 +72,11 @@ captura solicitada de `docker compose ps`.
   `3000` y backoffice en `3001`; ambas rutas `/` respondieron `200`.
 - Prueba viva local: FastAPI respondió `200` en `/health` y el mismo JSON llegó
   a través de `http://127.0.0.1:3001/platform-api/health`.
-
-El host de validación no dispone de Docker Engine, Podman ni otro daemon de
-contenedores. Por tanto, el build real de imágenes, `docker compose up`, la
-comprobación de bind mounts dentro de contenedores y la captura de
-`docker compose ps` quedan pendientes para un equipo con Docker. No se declara
-esa evidencia como completada.
+- La red interna se comprobó desde `ui` contra
+  `http://backend:8000/health` (`200`), usando el DNS del servicio y no una URL
+  del host.
+- Los bind mounts y la recarga en caliente se comprobaron introduciendo un
+  marcador temporal en el footer del website: apareció en la respuesta del
+  puerto `3000` sin reconstruir la imagen y desapareció al restaurar el archivo.
+- Estado final de `docker compose ps`: `backend` saludable, `ui` en ejecución y
+  puertos `3000`, `3001` y `8000` publicados.
