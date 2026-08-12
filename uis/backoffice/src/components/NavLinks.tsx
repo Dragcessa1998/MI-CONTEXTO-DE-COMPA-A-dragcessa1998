@@ -8,6 +8,7 @@ const NAV = [
   { label: "Proveedores", href: "/suppliers" },
   { label: "Incidentes", href: "/incidents" },
   { label: "Conocimiento", href: "/knowledge" },
+  { label: "RFPs", href: "/rfps" },
 ];
 
 /** Enlaces de la barra lateral con resaltado de la ruta activa. */

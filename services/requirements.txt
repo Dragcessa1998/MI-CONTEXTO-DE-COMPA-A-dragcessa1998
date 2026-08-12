@@ -21,6 +21,7 @@ psycopg[binary]>=3.2,<4
 pycparser==3.0; implementation_name != "PyPy" and platform_python_implementation != "PyPy"
 pydantic==2.13.4
 pydantic-core==2.46.4
+pypdf==6.15.0
 python-jose==3.5.0
 python-multipart==0.0.32
 qdrant-client==1.19.0
