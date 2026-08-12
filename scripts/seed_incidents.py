@@ -5,7 +5,9 @@ import argparse
 import csv
 import sys
 from collections import Counter
+from json import JSONDecodeError
 from pathlib import Path
+
 from tinydb.table import Document
 
 
@@ -30,7 +32,14 @@ def seed(csv_path: Path) -> dict[str, object]:
     errors: Counter[str] = Counter()
 
     with csv_path.open("r", encoding="utf-8", newline="") as source:
-        for row in csv.DictReader(source):
+        reader = csv.DictReader(source)
+        required_headers = {
+            "ticket_id", "date", "client_company", "category", "description",
+            "agent_id", "status", "customer_email", "satisfaction_score",
+        }
+        if reader.fieldnames is None or not required_headers.issubset(reader.fieldnames):
+            raise csv.Error("cabeceras obligatorias ausentes")
+        for row in reader:
             total += 1
             validation = validate_historical_row(row)
             if not validation.valid:
@@ -76,14 +85,25 @@ def print_report(result: dict[str, object], csv_path: Path) -> None:
     print("No se imprimieron emails ni otros datos personales.")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("csv", nargs="?", type=Path, default=DEFAULT_CSV)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if not args.csv.is_file():
-        parser.error(f"No existe el CSV: {args.csv}")
-    print_report(seed(args.csv), args.csv)
+        print(f"No se encontró el archivo de entrada: {args.csv.name}", file=sys.stderr)
+        return 1
+    try:
+        result = seed(args.csv)
+    except (OSError, UnicodeError, csv.Error, JSONDecodeError, ValueError):
+        print(
+            "No se pudo procesar el CSV o guardar los incidentes. "
+            "Comprueba el formato, los permisos y la base local.",
+            file=sys.stderr,
+        )
+        return 1
+    print_report(result, args.csv)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

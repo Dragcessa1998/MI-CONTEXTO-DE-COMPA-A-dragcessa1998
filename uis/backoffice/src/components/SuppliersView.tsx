@@ -17,8 +17,6 @@ import ApiErrorState from "@/components/ApiErrorState";
 
 type LoadState = "loading" | "ready" | "error";
 
-const SUPPLIERS_HELP = `cd services/api\nuv run seed\nuv run uvicorn main:app --port 8000`;
-
 /**
  * Directorio de Proveedores (página /suppliers). Consume la Supplier API
  * (FastAPI + TinyDB) en vivo: listado con filtros por país y categoría (vía
@@ -52,7 +50,7 @@ export default function SuppliersView() {
       setState("ready");
     } catch (err) {
       if (seq !== loadSeq.current) return;
-      setError(err instanceof Error ? err.message : "Error al cargar los proveedores");
+      setError(err instanceof ApiError ? err.message : "No se pudieron cargar los proveedores.");
       setState("error");
     }
   }, [country, category]);
@@ -146,7 +144,7 @@ export default function SuppliersView() {
       {state === "loading" && (
         <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-slate-200/60" />
       )}
-      {state === "error" && <ApiErrorState message={error} onRetry={load} helpCommand={SUPPLIERS_HELP} />}
+      {state === "error" && <ApiErrorState message={error} onRetry={load} />}
       {state === "ready" && (
         <SuppliersTable
           suppliers={suppliers}

@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 
 import database
+import seed
 import routes.suppliers as supplier_routes
 from seed import SUPPLIERS_SEED, main as run_seed
 
@@ -26,9 +27,9 @@ def supplier_payload(**overrides):
 
 
 def test_seed_loads_exact_context_and_is_idempotent(capsys):
-    run_seed()
+    assert run_seed() == 0
     first_output = capsys.readouterr().out
-    run_seed()
+    assert run_seed() == 0
     second_output = capsys.readouterr().out
 
     records = database.suppliers_table().all()
@@ -39,6 +40,20 @@ def test_seed_loads_exact_context_and_is_idempotent(capsys):
     assert "Insertados: 15" in first_output
     assert "Omitidos (ya existían): 15" in second_output
     assert "Total en la base de datos: 15" in second_output
+
+
+def test_supplier_seed_returns_nonzero_with_safe_stderr_on_database_failure(
+    monkeypatch, capsys,
+):
+    monkeypatch.setattr(seed, "suppliers_table", lambda: (_ for _ in ()).throw(OSError("secret path")))
+
+    exit_code = seed.main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "No se pudo abrir la base local" in captured.err
+    assert "secret path" not in captured.err
+    assert "Traceback" not in captured.err
 
 
 def test_create_returns_tinydb_id_and_system_timestamp(client: TestClient):

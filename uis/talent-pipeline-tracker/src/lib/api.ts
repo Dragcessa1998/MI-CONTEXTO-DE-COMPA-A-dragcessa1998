@@ -19,35 +19,70 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   "https://playground.4geeks.com/tracker/api/v1";
 
-/** Extrae un mensaje de error legible del cuerpo de una respuesta fallida. */
-async function extractError(response: Response): Promise<string> {
+export class TrackerApiError extends Error {
+  constructor(message: string, public readonly status?: number) {
+    super(message);
+    this.name = "TrackerApiError";
+  }
+}
+
+function safeHttpMessage(status: number): string {
+  if (status === 400 || status === 422) return "Revisa los datos del formulario e inténtalo de nuevo.";
+  if (status === 401) return "Tu sesión ha expirado. Vuelve a iniciar sesión.";
+  if (status === 403) return "No tienes permiso para realizar esta acción.";
+  if (status === 404) return "No encontramos la candidatura solicitada.";
+  if (status === 409) return "Ya existe un registro con esos datos.";
+  return "El servicio de candidaturas no está disponible. Reintenta en unos instantes.";
+}
+
+/** Traduce errores de validación conocidos sin mostrar mensajes técnicos del servidor. */
+async function validationMessage(response: Response): Promise<string | null> {
+  if (response.status !== 400 && response.status !== 422) return null;
   try {
-    const body = await response.json();
-    if (typeof body?.detail === "string") return body.detail;
+    const body = await response.json() as { detail?: unknown };
     if (Array.isArray(body?.detail) && body.detail.length > 0) {
-      return body.detail.map((d: { msg?: string }) => d.msg).filter(Boolean).join(", ");
+      const fields = body.detail
+        .map((item) => {
+          const entry = item as { loc?: unknown[] };
+          const field = entry.loc?.at(-1);
+          return typeof field === "string" ? field.replaceAll("_", " ") : null;
+        })
+        .filter((field): field is string => field !== null);
+      if (fields.length > 0) return `Revisa: ${[...new Set(fields)].join(", ")}.`;
     }
   } catch {
-    /* el cuerpo no era JSON */
+    return null;
   }
-  return `Error ${response.status} ${response.statusText}`.trim();
+  return null;
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    ...options,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      ...options,
+    });
+  } catch {
+    throw new TrackerApiError("No se pudo conectar con el servicio de candidaturas.");
+  }
 
   if (!response.ok) {
-    throw new Error(await extractError(response));
+    throw new TrackerApiError(
+      (await validationMessage(response)) ?? safeHttpMessage(response.status),
+      response.status,
+    );
   }
 
   if (response.status === 204) {
     return undefined as T;
   }
-  return (await response.json()) as T;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new TrackerApiError("El servicio devolvió una respuesta ilegible. Reintenta la operación.");
+  }
 }
 
 /** GET /records con filtros opcionales (status, stage, search). */
@@ -100,7 +135,7 @@ export function deleteRecord(id: string): Promise<void> {
 /** GET /records/:id/notes */
 export async function listNotes(id: string): Promise<Note[]> {
   const response = await request<NotesListResponse>(`/records/${id}/notes`);
-  return response.data;
+  return response?.data ?? [];
 }
 
 /** POST /records/:id/notes */

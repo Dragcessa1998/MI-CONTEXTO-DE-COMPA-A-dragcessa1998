@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { api, type ProcessDto } from "@/lib/api";
+import { api, ApiError, type ProcessDto } from "@/lib/api";
 import type { Candidate, Vacancy } from "@logic/types/models";
 import { PROCESS_STAGES, PROCESS_STAGE_LABELS } from "@/lib/labels";
 import ApiErrorState from "@/components/ApiErrorState";
@@ -42,7 +42,7 @@ export default function PipelineBoard() {
       });
       setState("ready");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar los procesos");
+      setError(err instanceof ApiError ? err.message : "No se pudieron cargar los procesos.");
       setState("error");
     }
   }, []);
@@ -58,7 +58,7 @@ export default function PipelineBoard() {
         await api.patchProcess(processId, { stage });
         await load();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "No se pudo actualizar el proceso");
+        setError(err instanceof ApiError ? err.message : "No se pudo actualizar el proceso.");
         setState("error");
       } finally {
         setUpdatingId(null);

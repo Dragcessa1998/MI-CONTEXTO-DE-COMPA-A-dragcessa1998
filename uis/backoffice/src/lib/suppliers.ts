@@ -88,7 +88,12 @@ function extractFastApiError(body: unknown): string | null {
       .map((item) => {
         const entry = item as { loc?: unknown[]; msg?: string };
         const field = Array.isArray(entry.loc) ? String(entry.loc[entry.loc.length - 1]) : "";
-        const message = (entry.msg ?? "").replace(/^Value error, /, "");
+        const rawMessage = (entry.msg ?? "").replace(/^Value error, /, "");
+        const message = rawMessage === "Field required"
+          ? "Este campo es obligatorio"
+          : rawMessage.includes("valid number")
+            ? "Debe ser un número válido"
+            : rawMessage;
         return field && field !== "body" ? `${field}: ${message}` : message;
       })
       .join(" · ");
@@ -110,9 +115,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       cache: "no-store",
     });
   } catch {
-    throw new ApiError(
-      `No se pudo conectar con la Supplier API en ${SUPPLIERS_API_URL}. ¿Está arrancada? (cd services/api && uv run uvicorn main:app --port 8000)`,
-    );
+    throw new ApiError("No se pudo conectar con el directorio de proveedores.");
   }
 
   let body: unknown = null;
@@ -123,8 +126,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    throw new ApiError(extractFastApiError(body) ?? `Error ${res.status} al llamar a ${path}`, res.status);
+    const message = res.status === 401
+      ? "Tu sesión no es válida. Inicia sesión desde el gestor de incidentes y vuelve a intentarlo."
+      : res.status === 403
+        ? "No tienes permiso para realizar esta acción."
+        : res.status >= 500
+          ? "El directorio no pudo completar la operación. Reintenta en unos instantes."
+          : extractFastApiError(body) ?? "Revisa los datos enviados e inténtalo de nuevo.";
+    throw new ApiError(message, res.status);
   }
+  if (body === null) throw new ApiError("El directorio devolvió una respuesta ilegible. Reintenta la operación.");
   return body as T;
 }
 

@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 import routes.incidents as incident_routes
 import database
 from main import app
-from scripts.seed_incidents import DEFAULT_CSV, print_report, seed
+from scripts.seed_incidents import DEFAULT_CSV, main as seed_main, print_report, seed
 
 
 def incident_payload(**overrides) -> dict:
@@ -192,3 +192,26 @@ def test_seed_transforms_96_valid_rows_reports_four_invalid_and_is_idempotent(
     }
     assert summary["by_origin"]["customer"] == 96
     assert summary["by_branch"]["central"] == 96
+
+
+def test_seed_cli_returns_nonzero_and_safe_stderr_for_missing_file(tmp_path, capsys):
+    missing = tmp_path / "customer-secret-file.csv"
+
+    exit_code = seed_main([str(missing)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "customer-secret-file.csv" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_seed_cli_rejects_malformed_headers_without_trace(tmp_path, capsys):
+    malformed = tmp_path / "incidents.csv"
+    malformed.write_text("ticket_id,description\nNXV-000001,test\n", encoding="utf-8")
+
+    exit_code = seed_main([str(malformed)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Comprueba el formato" in captured.err
+    assert "Traceback" not in captured.err

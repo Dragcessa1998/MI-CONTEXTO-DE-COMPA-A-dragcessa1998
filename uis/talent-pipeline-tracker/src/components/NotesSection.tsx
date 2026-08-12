@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { addNote, deleteNote, listNotes } from "@/lib/api";
+import { addNote, deleteNote, listNotes, TrackerApiError } from "@/lib/api";
 import type { Note } from "@/types/tracker";
 import { formatDateTime } from "@/lib/format";
 import { LoadingState, ErrorState, EmptyState } from "./ui";
@@ -26,7 +26,7 @@ export default function NotesSection({ recordId }: { recordId: string }) {
     try {
       setNotes(await listNotes(recordId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudieron cargar las notas");
+      setError(err instanceof TrackerApiError ? err.message : "No se pudieron cargar las notas.");
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,7 @@ export default function NotesSection({ recordId }: { recordId: string }) {
       setContent("");
       await fetchNotes();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "No se pudo añadir la nota");
+      setAddError(err instanceof TrackerApiError ? err.message : "No se pudo añadir la nota.");
     } finally {
       setAdding(false);
     }
@@ -63,7 +63,7 @@ export default function NotesSection({ recordId }: { recordId: string }) {
       await deleteNote(recordId, noteId);
       setNotes((current) => current.filter((note) => note.id !== noteId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo eliminar la nota");
+      setError(err instanceof TrackerApiError ? err.message : "No se pudo eliminar la nota.");
     } finally {
       setDeletingId(null);
     }
@@ -88,9 +88,10 @@ export default function NotesSection({ recordId }: { recordId: string }) {
           className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30"
         />
         {addError && (
-          <p role="alert" className="mt-1 text-sm text-red-600">
-            {addError}
-          </p>
+          <div role="alert" className="mt-1 text-sm text-red-600">
+            <p>{addError}</p>
+            <p className="text-xs">La nota sigue en el formulario: revisa el texto y vuelve a pulsar “Añadir nota”.</p>
+          </div>
         )}
         <div className="mt-2 flex justify-end">
           <button

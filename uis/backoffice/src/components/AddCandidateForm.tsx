@@ -88,8 +88,9 @@ export default function AddCandidateForm({
       if (err instanceof ApiError) {
         setErrors(err.message.split(" · "));
       } else {
-        setErrors([err instanceof Error ? err.message : "Error al crear el candidato"]);
+        setErrors(["No se pudo crear el candidato. Revisa los datos y vuelve a intentarlo."]);
       }
+    } finally {
       setSubmitting(false);
     }
   }
@@ -104,11 +105,10 @@ export default function AddCandidateForm({
       </div>
 
       {errors.length > 0 && (
-        <ul className="mt-3 list-disc space-y-1 rounded-lg border border-rose-200 bg-rose-50 py-3 pl-8 pr-4 text-sm text-rose-700">
-          {errors.map((message, index) => (
-            <li key={`${index}-${message}`}>{message}</li>
-          ))}
-        </ul>
+        <div role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 py-3 pl-4 pr-4 text-sm text-rose-700">
+          <ul className="list-disc space-y-1 pl-4">{errors.map((message, index) => <li key={`${index}-${message}`}>{message}</li>)}</ul>
+          <p className="mt-2 text-xs">Corrige los campos y vuelve a pulsar “Crear candidato”.</p>
+        </div>
       )}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
