@@ -27,3 +27,13 @@ def get_db() -> TinyDB:
 def suppliers_table() -> Table:
     """Tabla de proveedores."""
     return get_db().table("suppliers")
+
+
+def users_table() -> Table:
+    """Credenciales y autorización de usuarios (solo TinyDB)."""
+    return get_db().table("users")
+
+
+def profiles_table() -> Table:
+    """Datos personales separados de las credenciales, enlazados por user_id."""
+    return get_db().table("profiles")

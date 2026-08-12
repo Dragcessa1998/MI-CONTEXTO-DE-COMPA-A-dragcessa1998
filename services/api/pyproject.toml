@@ -1,10 +1,14 @@
 [project]
 name = "nexova-supplier-api"
-version = "1.0.0"
-description = "Supplier Directory de Nexova — Lightweight Storage API (FastAPI + TinyDB + Pydantic)"
+version = "2.0.0"
+description = "Supplier Directory de Nexova protegido con JWT, usuarios y perfiles en TinyDB"
 requires-python = ">=3.11"
 dependencies = [
+    "email-validator>=2.2",
     "fastapi>=0.115",
+    "libpass[bcrypt]>=1.9",
+    "python-jose[cryptography]>=3.3",
+    "python-multipart>=0.0.20",
     "uvicorn>=0.32",
     "tinydb>=4.8",
     "pydantic>=2.9",
