@@ -40,6 +40,19 @@ La base PostgreSQL debe ser accesible al arranque; el repositorio aplica la migr
 PYTHONPATH=. services/api/.venv/bin/python scripts/process_rfp.py /ruta/documento.pdf
 ```
 
+La suite encuentra los PDF oficiales en el repositorio hermano `course-syllabus` o en
+`RFP_TEST_SAMPLES_DIR`. El contrato de persistencia puede ejecutarse contra una base
+PostgreSQL desechable con `TEST_POSTGRES_DATABASE_URL`; sin esa variable sólo se omite
+esa prueba de integración, nunca se sustituye PostgreSQL por SQLite o TinyDB.
+
+## Verificación realizada
+
+El 12/08/2026 se ejecutaron las suites con los tres PDF oficiales y PostgreSQL 17 real:
+
+- API y persistencia: **54 pruebas aprobadas**.
+- Pipeline y routing: **17 pruebas aprobadas**.
+- Backoffice Next.js: compilación de producción aprobada.
+
 ## Decisiones y recuperación
 
 - Un departamento desconocido no se activa; queda fuera de la allowlist y debe tratarse como pregunta abierta en una ampliación.

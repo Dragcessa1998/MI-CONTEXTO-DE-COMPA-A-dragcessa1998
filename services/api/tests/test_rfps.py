@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import os
 from pathlib import Path
-from shutil import copy2
 from typing import Any
 from uuid import uuid4
 
@@ -14,9 +14,11 @@ from main import app
 from routes import rfps as rfp_routes
 
 
-SAMPLES = Path(
-    "/Users/franchescostabile/Desktop/tareas pendientes/course-syllabus/content/contexts/09-agentic-workflows/rfp-requests/nexova"
+DEFAULT_SAMPLES = (
+    Path(__file__).resolve().parents[4]
+    / "course-syllabus/content/contexts/09-agentic-workflows/rfp-requests/nexova"
 )
+SAMPLES = Path(os.getenv("RFP_TEST_SAMPLES_DIR", DEFAULT_SAMPLES))
 
 
 class MemoryRfpRepository:

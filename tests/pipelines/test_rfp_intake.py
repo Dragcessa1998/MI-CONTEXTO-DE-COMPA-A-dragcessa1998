@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from shutil import copy2
 
@@ -9,9 +10,11 @@ from data.pipelines.rfp_intake import run_rfp_intake
 from data.pipelines.rfp_intake.agents import department_worker, extract_metadata
 
 
-SAMPLES = Path(
-    "/Users/franchescostabile/Desktop/tareas pendientes/course-syllabus/content/contexts/09-agentic-workflows/rfp-requests/nexova"
+DEFAULT_SAMPLES = (
+    Path(__file__).resolve().parents[3]
+    / "course-syllabus/content/contexts/09-agentic-workflows/rfp-requests/nexova"
 )
+SAMPLES = Path(os.getenv("RFP_TEST_SAMPLES_DIR", DEFAULT_SAMPLES))
 
 
 def _run_sample(tmp_path: Path, name: str):
