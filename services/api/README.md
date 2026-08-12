@@ -15,6 +15,7 @@ El modelo, las categorías, los estados y los datos del seeder replican **exacta
 cd services/api
 uv run seed                          # carga inicial (idempotente, confirma el conteo)
 uv run uvicorn main:app --port 8000  # API + Swagger UI en http://localhost:8000/docs
+uv run --group dev pytest -q         # pruebas de aceptación en TinyDB aislada
 ```
 
 > `uv` instala Python y las dependencias automáticamente la primera vez.
@@ -47,7 +48,7 @@ uv run python seed.py
 
 - `status` solo `active` / `suspended` · `monthly_rate` > 0 · `categories` ⊆ lista válida (mín. 1).
 - **Moneda por país** (restricción del CONTEXT): `Spain → EUR`, `USA → USD`; combinaciones inconsistentes se rechazan.
-- `rate_updated_at` lo **genera el sistema** (no se acepta del cliente): modelos de entrada (`SupplierIn`) y respuesta (`SupplierOut`) separados.
+- `rate_updated_at` lo **genera el sistema** (no se acepta del cliente): modelos de entrada (`SupplierIn`) y respuesta (`SupplierOut`) separados; los campos desconocidos también producen `422`.
 
 ### Ejemplos
 
