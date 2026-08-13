@@ -116,4 +116,23 @@ export const authApi = {
   me: () => request<AuthUser>("/auth/me", {}, true),
   updateProfile: (input: ProfileInput) =>
     request<Profile>("/profiles/me", { method: "PUT", body: JSON.stringify(input) }, true),
+  forgotPassword: (email: string) =>
+    request<{ message: string }>(
+      "/auth/forgot-password",
+      { method: "POST", body: JSON.stringify({ email }) },
+    ),
+  resetPassword: (token: string, newPassword: string) =>
+    request<{ message: string }>(
+      "/auth/reset-password",
+      { method: "POST", body: JSON.stringify({ token, new_password: newPassword }) },
+    ),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ message: string }>(
+      "/auth/change-password",
+      {
+        method: "POST",
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      },
+      true,
+    ),
 };

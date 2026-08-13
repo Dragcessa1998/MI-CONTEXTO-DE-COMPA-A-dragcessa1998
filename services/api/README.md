@@ -24,6 +24,13 @@ uv run --group dev pytest -q         # pruebas de aceptación en TinyDB aislada
 Genera un secreto local seguro, por ejemplo con `openssl rand -hex 32`, y no lo
 subas al repositorio. `ACCESS_TOKEN_EXPIRE_MINUTES` controla la vida del token.
 
+Para recuperación de contraseña, configura `RESEND_API_KEY`,
+`PASSWORD_RESET_FROM_EMAIL` y `PASSWORD_RESET_FRONTEND_URL`. El token dura 30
+minutos por defecto (`PASSWORD_RESET_EXPIRE_MINUTES`, permitido: 15–60), sólo se
+guarda hasheado en TinyDB y se invalida después del primer uso. En desarrollo,
+el remitente de onboarding de Resend permite probar sin dominio propio dentro
+de las restricciones de la cuenta.
+
 ## Autenticación
 
 1. Registra una cuenta con `POST /users`; siempre nace con rol `user` y su perfil
@@ -38,6 +45,8 @@ Rutas principales:
   solo accede a su cuenta, salvo administradores.
 - `POST /auth/login` (JSON), `POST /auth/token` (formulario OAuth2 de Swagger) y
   `GET /auth/me`.
+- `POST /auth/forgot-password`, `POST /auth/reset-password` y el endpoint
+  autenticado `POST /auth/change-password`.
 - `GET /profiles/me` y `PUT /profiles/me`; nombre, teléfono y dirección nunca
   viven en la tabla de credenciales.
 - `/suppliers`: alta, listado, detalle, cambios de tarifa/estado y borrado,
@@ -68,6 +77,9 @@ uv run python seed.py
 | POST | `/auth/login` | Valida credenciales y entrega un JWT firmado |
 | POST | `/auth/token` | Adaptador OAuth2 para **Authorize** en Swagger |
 | GET | `/auth/me` | Usuario y perfil autenticados |
+| POST | `/auth/forgot-password` | Respuesta neutra y envío del enlace con Resend |
+| POST | `/auth/reset-password` | Consume un token corto y de un solo uso |
+| POST | `/auth/change-password` | Cambio autenticado tras verificar la contraseña actual |
 | GET/PUT | `/profiles/me` | Consulta y actualización del perfil propio |
 | POST | `/suppliers` | Alta protegida (422 si la entrada es inválida) |
 | GET | `/suppliers?country=&category=` | Lista protegida; filtra por país y/o categoría |

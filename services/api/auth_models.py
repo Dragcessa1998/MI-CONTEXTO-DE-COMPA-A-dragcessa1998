@@ -114,3 +114,36 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalize_forgot_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=1)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_reset_password_size(cls, value: str) -> str:
+        return validate_bcrypt_password(value)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_changed_password_size(cls, value: str) -> str:
+        return validate_bcrypt_password(value)
+
+
+class MessageResponse(BaseModel):
+    message: str

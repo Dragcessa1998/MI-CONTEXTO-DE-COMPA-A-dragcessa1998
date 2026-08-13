@@ -9,7 +9,7 @@ import { AuthError, type RegistrationInput } from "@/lib/auth";
 
 const EMPTY: RegistrationInput = { email: "", password: "", name: "", phone: "", address: "" };
 
-export default function AuthForm({ mode }: { mode: "login" | "register" }) {
+export default function AuthForm({ mode, resetSuccess = false }: { mode: "login" | "register"; resetSuccess?: boolean }) {
   const router = useRouter();
   const { login, register } = useAuth();
   const [form, setForm] = useState(EMPTY);
@@ -67,8 +67,10 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
       <p className="text-xs font-bold uppercase tracking-widest text-brand-600">Nexova · Acceso seguro</p>
       <h1 className="mt-1 text-2xl font-extrabold text-slate-900">{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h1>
       <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
+        {resetSuccess && mode === "login" && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Contraseña restablecida. Ya puedes iniciar sesión.</p>}
         {input("email", "Email", "email")}
         {input("password", "Contraseña", "password")}
+        {mode === "login" && <div className="text-right"><Link className="text-sm font-semibold text-brand-700 hover:underline" href="/forgot-password">¿Olvidaste tu contraseña?</Link></div>}
         {mode === "register" && <>{input("name", "Nombre")}{input("phone", "Teléfono", "tel")}{input("address", "Dirección")}</>}
         {message && <p role="alert" className="text-sm text-rose-700">{message}</p>}
         <button type="submit" disabled={busy} className="w-full rounded-lg bg-brand-600 px-4 py-2.5 font-semibold text-white hover:bg-brand-700 disabled:opacity-60">

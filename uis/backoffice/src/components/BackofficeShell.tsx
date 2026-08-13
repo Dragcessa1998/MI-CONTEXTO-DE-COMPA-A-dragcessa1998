@@ -6,18 +6,19 @@ import { usePathname, useRouter } from "next/navigation";
 import NavLinks from "@/components/NavLinks";
 import { useAuth } from "@/components/AuthProvider";
 
-const PUBLIC_ROUTES = new Set(["/login", "/register"]);
+const PUBLIC_ROUTES = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 
 export default function BackofficeShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useAuth();
   const publicRoute = PUBLIC_ROUTES.has(pathname);
+  const authEntryRoute = pathname === "/login" || pathname === "/register";
 
   useEffect(() => {
     if (!loading && !user && !publicRoute) router.replace("/login");
-    if (!loading && user && publicRoute) router.replace("/");
-  }, [loading, pathname, publicRoute, router, user]);
+    if (!loading && user && authEntryRoute) router.replace("/");
+  }, [authEntryRoute, loading, publicRoute, router, user]);
 
   if (publicRoute) return <main className="min-h-screen p-6">{children}</main>;
   if (loading || !user) {

@@ -15,7 +15,13 @@ const EMPTY_REGISTRATION: RegistrationInput = {
   address: "",
 };
 
-export default function AuthForm({ mode }: { mode: "login" | "register" }) {
+export default function AuthForm({
+  mode,
+  resetSuccess = false,
+}: {
+  mode: "login" | "register";
+  resetSuccess?: boolean;
+}) {
   const router = useRouter();
   const { login, register } = useAuth();
   const [form, setForm] = useState(EMPTY_REGISTRATION);
@@ -82,8 +88,20 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         {mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
       </h1>
       <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
+        {resetSuccess && mode === "login" && (
+          <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            Contraseña restablecida. Ya puedes iniciar sesión.
+          </p>
+        )}
         {field("email", "Email", "email")}
         {field("password", "Contraseña", "password")}
+        {mode === "login" && (
+          <div className="text-right">
+            <Link className="text-sm font-semibold text-brand-700 hover:underline" href="/forgot-password">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+        )}
         {mode === "register" && (
           <>
             {field("name", "Nombre")}

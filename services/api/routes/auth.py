@@ -1,10 +1,29 @@
 """Inicio de sesión JWT y proyección segura del usuario autenticado."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
-from auth_models import LoginRequest, TokenResponse, UserOut, UserRecord, UserWithProfile
-from auth_service import get_profile_by_user_id, get_user_by_email
+from auth_models import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    MessageResponse,
+    ResetPasswordRequest,
+    TokenResponse,
+    UserOut,
+    UserRecord,
+    UserWithProfile,
+)
+from auth_service import (
+    PasswordResetTokenError,
+    consume_password_reset_token,
+    get_profile_by_user_id,
+    get_user_by_email,
+    invalidate_password_reset_tokens,
+    issue_password_reset_token,
+    set_user_password,
+)
+from email_service import try_send_password_reset_email
 from security import (
     access_token_expire_minutes,
     create_access_token,
@@ -47,3 +66,38 @@ def read_auth_me(current_user: UserRecord = Depends(get_current_user)) -> UserWi
         raise unauthorized()
     safe_user = UserOut.model_validate(current_user.model_dump())
     return UserWithProfile(**safe_user.model_dump(), profile=profile)
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+) -> MessageResponse:
+    user = get_user_by_email(str(payload.email))
+    if user is not None and user.is_active:
+        token = issue_password_reset_token(user.id)
+        background_tasks.add_task(try_send_password_reset_email, str(user.email), token)
+    return MessageResponse(
+        message="Si la dirección está registrada, recibirás un enlace en breve."
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
+    try:
+        consume_password_reset_token(payload.token, payload.new_password)
+    except PasswordResetTokenError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return MessageResponse(message="Contraseña restablecida correctamente.")
+
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: UserRecord = Depends(get_current_user),
+) -> MessageResponse:
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="La contraseña actual no es correcta")
+    set_user_password(current_user.id, payload.new_password)
+    invalidate_password_reset_tokens(current_user.id)
+    return MessageResponse(message="Contraseña actualizada correctamente.")

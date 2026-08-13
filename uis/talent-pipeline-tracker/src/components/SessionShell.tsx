@@ -6,18 +6,19 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/AuthProvider";
 
-const PUBLIC_ROUTES = new Set(["/login", "/register"]);
+const PUBLIC_ROUTES = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 
 export default function SessionShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useAuth();
   const publicRoute = PUBLIC_ROUTES.has(pathname);
+  const authEntryRoute = pathname === "/login" || pathname === "/register";
 
   useEffect(() => {
     if (!loading && !user && !publicRoute) router.replace("/login");
-    if (!loading && user && publicRoute) router.replace("/");
-  }, [loading, publicRoute, router, user]);
+    if (!loading && user && authEntryRoute) router.replace("/");
+  }, [authEntryRoute, loading, publicRoute, router, user]);
 
   if (publicRoute) return <main className="min-h-screen px-4 py-8">{children}</main>;
   if (loading || !user) {
@@ -38,6 +39,7 @@ export default function SessionShell({ children }: { children: React.ReactNode }
           <nav aria-label="Acciones" className="flex items-center gap-3 text-sm font-medium">
             <Link href="/" className="text-slate-600 hover:text-brand-600">Candidaturas</Link>
             <Link href="/account/profile" className="text-slate-600 hover:text-brand-600">Mi perfil</Link>
+            <Link href="/account/change-password" className="text-slate-600 hover:text-brand-600">Contraseña</Link>
             <Link href="/candidates/new" className="rounded-lg bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">+ Nueva candidatura</Link>
             <button
               type="button"

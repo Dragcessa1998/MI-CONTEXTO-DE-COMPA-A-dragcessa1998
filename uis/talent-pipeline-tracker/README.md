@@ -7,6 +7,11 @@ login, perfil editable y logout; valida la sesión al arrancar, añade el token 
 todas las peticiones del tracker y vuelve a `/login` ante un `401`. La web
 pública de Nexova permanece independiente y sin guardas de autenticación.
 
+AUTH-03 completa el ciclo con recuperación por email, formulario de token de
+un solo uso y cambio autenticado de contraseña. Los formularios públicos son
+`/forgot-password` y `/reset-password`; `/account/change-password` permanece
+protegido por la misma guarda de sesión.
+
 ## Funcionalidades
 
 - **Listado** de candidaturas (`/`) con nombre, puesto, estado y etapa.

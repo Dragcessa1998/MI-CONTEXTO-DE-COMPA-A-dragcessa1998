@@ -2,6 +2,7 @@
 
 import os
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -58,6 +59,56 @@ def create_access_token(user_id: int, expires_delta: timedelta | None = None) ->
         _jwt_secret(),
         algorithm=ALGORITHM,
     )
+
+
+def password_reset_expire_minutes() -> int:
+    raw_value = os.getenv("PASSWORD_RESET_EXPIRE_MINUTES", "30")
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise RuntimeError("PASSWORD_RESET_EXPIRE_MINUTES debe ser un entero") from exc
+    if not 15 <= value <= 60:
+        raise RuntimeError("PASSWORD_RESET_EXPIRE_MINUTES debe estar entre 15 y 60")
+    return value
+
+
+def create_password_reset_token(
+    user_id: int,
+    token_id: str,
+    expires_delta: timedelta | None = None,
+) -> tuple[str, datetime]:
+    now = datetime.now(timezone.utc)
+    expires_at = now + (
+        expires_delta
+        if expires_delta is not None
+        else timedelta(minutes=password_reset_expire_minutes())
+    )
+    token = jwt.encode(
+        {
+            "sub": str(user_id),
+            "jti": token_id,
+            "purpose": "password-reset",
+            "iat": now,
+            "exp": expires_at,
+        },
+        _jwt_secret(),
+        algorithm=ALGORITHM,
+    )
+    return token, expires_at
+
+
+def decode_password_reset_token(token: str) -> tuple[int, str]:
+    try:
+        payload: dict[str, Any] = jwt.decode(token, _jwt_secret(), algorithms=[ALGORITHM])
+        if payload.get("purpose") != "password-reset":
+            raise JWTError("Propósito de token incorrecto")
+        subject = payload.get("sub")
+        token_id = payload.get("jti")
+        if not isinstance(subject, str) or not isinstance(token_id, str):
+            raise JWTError("Token incompleto")
+        return int(subject), token_id
+    except (JWTError, TypeError, ValueError) as exc:
+        raise ValueError("Token de recuperación inválido o expirado") from exc
 
 
 def unauthorized() -> HTTPException:

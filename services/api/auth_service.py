@@ -1,12 +1,14 @@
 """Servicio de usuarios y perfiles sobre TinyDB, independiente de HTTP."""
 
+import hashlib
+import secrets
 from datetime import datetime, timezone
 
 from tinydb import Query
 
 from auth_models import ProfileOut, UserCreate, UserOut, UserRecord, UserUpdate
-from database import profiles_table, users_table
-from security import hash_password
+from database import password_reset_tokens_table, profiles_table, users_table
+from security import create_password_reset_token, decode_password_reset_token, hash_password
 
 
 def _now_iso() -> str:
@@ -107,3 +109,74 @@ def delete_user(user_id: int) -> bool:
     profiles_table().remove(query.user_id == user_id)
     users_table().remove(query.id == user_id)
     return True
+
+
+class PasswordResetTokenError(ValueError):
+    pass
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def issue_password_reset_token(user_id: int) -> str:
+    token_id = secrets.token_urlsafe(24)
+    token, expires_at = create_password_reset_token(user_id, token_id)
+    record = {
+        "user_id": user_id,
+        "token_id": token_id,
+        "token_hash": _token_hash(token),
+        "created_at": _now_iso(),
+        "expires_at": expires_at.isoformat(),
+        "used_at": None,
+    }
+    doc_id = password_reset_tokens_table().insert(record)
+    password_reset_tokens_table().update({"id": doc_id}, doc_ids=[doc_id])
+    return token
+
+
+def invalidate_password_reset_tokens(user_id: int) -> None:
+    used_at = _now_iso()
+    table = password_reset_tokens_table()
+    for record in table.search(Query().user_id == user_id):
+        if record.get("used_at") is None:
+            table.update({"used_at": used_at}, doc_ids=[record.doc_id])
+
+
+def set_user_password(user_id: int, new_password: str) -> bool:
+    if get_user_by_id(user_id) is None:
+        return False
+    users_table().update(
+        {"hashed_password": hash_password(new_password)},
+        Query().id == user_id,
+    )
+    return True
+
+
+def consume_password_reset_token(token: str, new_password: str) -> None:
+    try:
+        user_id, token_id = decode_password_reset_token(token)
+    except ValueError as exc:
+        raise PasswordResetTokenError(str(exc)) from exc
+
+    table = password_reset_tokens_table()
+    record = table.get(
+        (Query().token_id == token_id)
+        & (Query().token_hash == _token_hash(token))
+        & (Query().user_id == user_id)
+    )
+    if record is None or record.get("used_at") is not None:
+        raise PasswordResetTokenError("Token de recuperación inválido, expirado o ya utilizado")
+    expires_at = datetime.fromisoformat(str(record["expires_at"]))
+    if expires_at <= datetime.now(timezone.utc):
+        raise PasswordResetTokenError("Token de recuperación inválido, expirado o ya utilizado")
+    if get_user_by_id(user_id) is None:
+        raise PasswordResetTokenError("Token de recuperación inválido, expirado o ya utilizado")
+    claimed = table.update(
+        {"used_at": _now_iso()},
+        (Query().id == record["id"]) & (Query().used_at == None),  # noqa: E711
+    )
+    if not claimed:
+        raise PasswordResetTokenError("Token de recuperación inválido, expirado o ya utilizado")
+    set_user_password(user_id, new_password)
+    invalidate_password_reset_tokens(user_id)

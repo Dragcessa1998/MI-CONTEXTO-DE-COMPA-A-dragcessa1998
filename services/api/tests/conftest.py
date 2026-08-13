@@ -23,6 +23,7 @@ def isolated_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(database, "DB_PATH", tmp_path / "suppliers.db.json")
     monkeypatch.setenv("JWT_SECRET", "test-secret-that-is-longer-than-thirty-two-characters")
     monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    monkeypatch.setenv("PASSWORD_RESET_EXPIRE_MINUTES", "30")
 
     yield
 

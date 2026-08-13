@@ -9,6 +9,11 @@ incluye `/login`, `/register` y `/account/profile`; restaura la sesión con
 `GET /auth/me`, adjunta `Authorization: Bearer` a las llamadas protegidas y
 limpia la sesión ante logout o cualquier respuesta `401`.
 
+AUTH-03 añade `/forgot-password`, `/reset-password` y
+`/account/change-password`. El primer formulario siempre muestra una
+confirmación neutra, el segundo consume el token de la URL y el tercero exige
+sesión y valida la confirmación antes de llamar al API.
+
 ```
 [ Backoffice :3000 ]  ──fetch (CORS)──►  [ Talent API :4000 ]  ──@logic──►  [ /src lógica Hito 2 ]
 ```

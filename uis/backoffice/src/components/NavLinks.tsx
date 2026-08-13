@@ -10,6 +10,7 @@ const NAV = [
   { label: "Procesos", href: "/processes" },
   { label: "Proveedores", href: "/suppliers" },
   { label: "Mi perfil", href: "/account/profile" },
+  { label: "Cambiar contraseña", href: "/account/change-password" },
 ];
 
 /** Enlaces de la barra lateral con resaltado de la ruta activa. */
