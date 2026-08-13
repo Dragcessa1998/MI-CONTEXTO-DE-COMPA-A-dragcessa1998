@@ -12,6 +12,8 @@ import {
   filterCandidatesByAvailability,
   sortCandidatesBySalary,
   sortCandidatesByExperience,
+  filterCandidates,
+  sortCandidatesByFields,
 } from "./utils/collections";
 import {
   findCandidateById,
@@ -24,6 +26,9 @@ import {
   groupCandidatesBySeniority,
   countCandidatesByStatus,
   calculateAverageSalary,
+  calculateTotalExpectedSalary,
+  findMinimumExpectedSalary,
+  findMaximumExpectedSalary,
   findTopSkills,
   calculateVacancyFillRate,
 } from "./utils/transformations";
@@ -67,6 +72,23 @@ console.log(
   "Por experiencia (desc):",
   sortCandidatesByExperience(sampleCandidates, "desc").map((c) => c.yearsOfExperience)
 );
+console.log(
+  "Filtro combinado (senior + Valencia + hasta 7000):",
+  names(
+    filterCandidates(sampleCandidates, {
+      seniorities: ["Senior"],
+      location: "Valencia",
+      maxExpectedSalary: 7000,
+    }),
+  ),
+);
+console.log(
+  "Orden multi-campo (experiencia desc, nombre asc):",
+  sortCandidatesByFields(sampleCandidates, [
+    { field: "yearsOfExperience", order: "desc" },
+    { field: "fullName", order: "asc" },
+  ]).map((candidate) => candidate.fullName),
+);
 
 section("2. BÚSQUEDA — lineal y binaria");
 
@@ -103,6 +125,9 @@ for (const level of Object.keys(bySeniority) as Array<keyof typeof bySeniority>)
 }
 console.log("Conteo por estado:", countCandidatesByStatus(sampleCandidates));
 console.log("Salario esperado promedio:", calculateAverageSalary(sampleCandidates));
+console.log("Suma de salarios esperados:", calculateTotalExpectedSalary(sampleCandidates));
+console.log("Salario esperado mínimo:", findMinimumExpectedSalary(sampleCandidates));
+console.log("Salario esperado máximo:", findMaximumExpectedSalary(sampleCandidates));
 console.log("Top 3 habilidades:", findTopSkills(sampleCandidates, 3));
 console.log("Tasa de cobertura (fill rate):", calculateVacancyFillRate(sampleProcesses) + "%");
 

@@ -178,6 +178,23 @@ export function calculateAverageSalary(candidates: Candidate[]): number {
   return roundToTwo(total / candidates.length);
 }
 
+/** Suma de salarios esperados; para una colección vacía devuelve 0. */
+export function calculateTotalExpectedSalary(candidates: Candidate[]): number {
+  return candidates.reduce((total, candidate) => total + candidate.expectedSalary, 0);
+}
+
+/** Menor salario esperado; devuelve null si no hay candidatos. */
+export function findMinimumExpectedSalary(candidates: Candidate[]): number | null {
+  if (candidates.length === 0) return null;
+  return Math.min(...candidates.map((candidate) => candidate.expectedSalary));
+}
+
+/** Mayor salario esperado; devuelve null si no hay candidatos. */
+export function findMaximumExpectedSalary(candidates: Candidate[]): number | null {
+  if (candidates.length === 0) return null;
+  return Math.max(...candidates.map((candidate) => candidate.expectedSalary));
+}
+
 /**
  * Devuelve las N habilidades más comunes entre todos los candidatos,
  * ordenadas por frecuencia (más alta primero). El conteo es case-insensitive

@@ -6,9 +6,11 @@
   "description": "Hito 2 — Capa de lógica en TypeScript para el motor de scoring y matching de candidatos de Nexova",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "demo": "tsx src/demo.ts"
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "demo": "node --import tsx src/demo.ts"
   },
   "devDependencies": {
+    "@types/node": "^24.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

@@ -83,9 +83,10 @@ La **lógica de negocio** (tipos, scoring, validaciones) vive una sola vez en `s
 Cada pieza se levanta por separado (los puertos son los que esperan las demás).
 
 ```bash
-# Lógica compartida (Hito 2) — typecheck y demo
+# Lógica compartida (Hito 2) — typecheck, pruebas y demo
 npm install
 npm run typecheck
+npm test
 npm run demo
 
 # Supplier Directory API (FastAPI, puerto 8000) — requiere uv

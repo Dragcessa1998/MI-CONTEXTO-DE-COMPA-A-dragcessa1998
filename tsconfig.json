@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ES2020", "DOM"],
-    "types": []
+    "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
