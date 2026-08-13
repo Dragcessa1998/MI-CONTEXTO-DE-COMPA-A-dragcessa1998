@@ -70,15 +70,39 @@ La URL se configura con `NEXT_PUBLIC_PLATFORM_API_URL` (por defecto
 services/api/.venv/bin/python scripts/seed_incidents.py
 ```
 
+## Gestión de inventario (`/inventory/*`)
+
+Interfaz autenticada del inventario operativo de Nexova, conectada exclusivamente
+a la API FastAPI mediante el cliente tipado central `src/lib/inventory.ts`:
+
+- `/inventory/products`: catálogo, stock actual por sede y alta de activos con SKU único.
+- `/inventory/orders/inbound`: entrada de unidades con activo, cantidad, proveedor y sede derivada.
+- `/inventory/orders/outbound`: salida por asignación o consumo, stock reactivo y bloqueo previo
+  cuando la cantidad solicitada supera las existencias. Los errores 400 de la API también se
+  muestran dentro del formulario.
+- `/inventory/orders`: historial unificado de entradas y salidas, con activo, sede, usuario UUID,
+  fecha y detalle de trazabilidad.
+
+Todas las rutas del backoffice redirigen a `/login` si no existe una sesión JWT válida. Las
+operaciones de escritura envían `Authorization: Bearer <token>`, y un 401 limpia la sesión.
+
+Para preparar los datos mínimos y arrancar el servicio:
+
+```bash
+cd services/api
+uv run seed-inventory
+JWT_SECRET="cambia-este-valor" uv run uvicorn main:app --port 8000
+```
+
 ## Ejecutar (API + backoffice)
 
 El panel necesita la API corriendo. En **dos terminales**:
 
 ```bash
-# Terminal 1 — API (Hito 5)
-cd services/talent-api
-npm install
-npm run dev            # http://localhost:4000
+# Terminal 1 — plataforma FastAPI (auth + inventario)
+cd services/api
+uv run seed-inventory
+JWT_SECRET="cambia-este-valor" uv run uvicorn main:app --port 8000
 
 # Terminal 2 — Backoffice
 cd uis/backoffice
@@ -88,11 +112,15 @@ npm run dev            # http://localhost:3000
 
 ### Configuración
 
-La URL de la API se toma de `NEXT_PUBLIC_API_URL` (por defecto `http://localhost:4000`).
-Para apuntar a otra instancia, crea `uis/backoffice/.env.local`:
+La API histórica de talento usa `NEXT_PUBLIC_API_URL`; auth e inventario usan
+`NEXT_PUBLIC_PLATFORM_API_URL` (por defecto `http://localhost:8000`). Para apuntar a otra
+instancia, crea `uis/backoffice/.env.local`:
 
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_PLATFORM_API_URL=http://localhost:8000
+NEXT_PUBLIC_AUTH_API_URL=http://localhost:8000
+NEXT_PUBLIC_INVENTORY_API_URL=http://localhost:8000
 ```
 
 Si la API no está arrancada, el panel muestra un estado de error con los pasos para levantarla
@@ -106,5 +134,6 @@ Si la API no está arrancada, el panel muestra un estado de error con los pasos 
 import type { Candidate, Vacancy } from "@logic/types/models";
 ```
 
-La capa de acceso vive en [`src/lib/api.ts`](src/lib/api.ts) (cliente tipado, manejo de
-errores de red y de negocio) y el panel en [`src/components/Dashboard.tsx`](src/components/Dashboard.tsx).
+Las capas de acceso viven en [`src/lib/api.ts`](src/lib/api.ts) para talento y
+[`src/lib/inventory.ts`](src/lib/inventory.ts) para inventario; ningún componente de inventario
+hace `fetch` directamente.
