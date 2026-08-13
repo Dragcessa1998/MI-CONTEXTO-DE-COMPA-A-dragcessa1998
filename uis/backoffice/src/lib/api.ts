@@ -10,6 +10,7 @@
  */
 
 import type { Candidate, Vacancy } from "@logic/types/models";
+import { authenticatedHeaders, clearExpiredSession } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -84,7 +85,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(`${API_URL}${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      headers: authenticatedHeaders(init?.headers),
       cache: "no-store",
     });
   } catch {
@@ -105,6 +106,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
+    if (res.status === 401) clearExpiredSession();
     throw new ApiError(extractError(body) ?? `Error ${res.status} al llamar a ${path}`, res.status);
   }
 

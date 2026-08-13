@@ -4,6 +4,11 @@ App interna de Nexova (Next.js + TypeScript) con **layout propio** (sidebar), se
 de la web pública. Su panel consume **datos en vivo** de la **Nexova Talent API** (Hito 5)
 por HTTP (con CORS), demostrando el stack completo de punta a punta:
 
+Todas las vistas operativas están protegidas por el flujo JWT de AUTH-02. La app
+incluye `/login`, `/register` y `/account/profile`; restaura la sesión con
+`GET /auth/me`, adjunta `Authorization: Bearer` a las llamadas protegidas y
+limpia la sesión ante logout o cualquier respuesta `401`.
+
 ```
 [ Backoffice :3000 ]  ──fetch (CORS)──►  [ Talent API :4000 ]  ──@logic──►  [ /src lógica Hito 2 ]
 ```
@@ -73,6 +78,8 @@ Para apuntar a otra instancia, crea `uis/backoffice/.env.local`:
 
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_AUTH_API_URL=http://localhost:8000
+NEXT_PUBLIC_SUPPLIERS_API_URL=http://localhost:8000
 ```
 
 Si la API no está arrancada, el panel muestra un estado de error con los pasos para levantarla

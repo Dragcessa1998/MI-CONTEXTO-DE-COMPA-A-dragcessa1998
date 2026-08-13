@@ -1,16 +1,22 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+
+import { useAuth } from "@/components/AuthProvider";
 
 const NAV = [
   { label: "Panel", href: "/" },
   { label: "Procesos", href: "/processes" },
   { label: "Proveedores", href: "/suppliers" },
+  { label: "Mi perfil", href: "/account/profile" },
 ];
 
 /** Enlaces de la barra lateral con resaltado de la ruta activa. */
 export default function NavLinks() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
   return (
     <ul className="space-y-1">
       {NAV.map((item) => {
@@ -29,6 +35,18 @@ export default function NavLinks() {
           </li>
         );
       })}
+      <li className="pt-3">
+        <button
+          type="button"
+          onClick={() => {
+            logout();
+            router.replace("/login");
+          }}
+          className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-300 hover:bg-slate-800"
+        >
+          Cerrar sesión
+        </button>
+      </li>
     </ul>
   );
 }

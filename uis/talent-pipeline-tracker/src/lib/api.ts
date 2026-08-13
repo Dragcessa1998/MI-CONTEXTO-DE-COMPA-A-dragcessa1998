@@ -14,6 +14,7 @@ import type {
   NoteCreateInput,
   RecordFilters,
 } from "@/types/tracker";
+import { authenticatedHeaders, clearExpiredSession } from "@/lib/auth";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
@@ -35,12 +36,13 @@ async function extractError(response: Response): Promise<string> {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
     ...options,
+    headers: authenticatedHeaders(options?.headers),
+    cache: "no-store",
   });
 
   if (!response.ok) {
+    if (response.status === 401) clearExpiredSession();
     throw new Error(await extractError(response));
   }
 

@@ -2,6 +2,11 @@
 
 Herramienta interna del equipo de **People & Talent de Nexova** para gestionar las candidaturas del proceso de selección (puesto activo: _Asistente de Dirección_). Construida con **Next.js (App Router) + React + TypeScript** sobre la API REST del curso.
 
+La aplicación está protegida por el flujo JWT de AUTH-02: ofrece registro,
+login, perfil editable y logout; valida la sesión al arrancar, añade el token a
+todas las peticiones del tracker y vuelve a `/login` ante un `401`. La web
+pública de Nexova permanece independiente y sin guardas de autenticación.
+
 ## Funcionalidades
 
 - **Listado** de candidaturas (`/`) con nombre, puesto, estado y etapa.
@@ -22,6 +27,8 @@ npm run dev                     # http://localhost:3000
 ```
 
 > La URL de la API se lee de `NEXT_PUBLIC_API_URL`. Si no defines `.env.local`, la app usa por defecto `https://playground.4geeks.com/tracker/api/v1`.
+> La API de autenticación se configura con `NEXT_PUBLIC_AUTH_API_URL` (por
+> defecto `http://localhost:8000`).
 
 ## Estructura
 
