@@ -52,13 +52,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 /** GET /records con filtros opcionales (status, stage, search). */
 export function listRecords(filters: RecordFilters = {}): Promise<RecordListResponse> {
+  return request<RecordListResponse>(buildRecordsPath(filters));
+}
+
+/** Serializa filtros para GET /records de forma determinista y comprobable. */
+export function buildRecordsPath(filters: RecordFilters = {}): string {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.stage) params.set("stage", filters.stage);
   if (filters.search) params.set("search", filters.search);
   params.set("limit", "100");
   const query = params.toString();
-  return request<RecordListResponse>(`/records${query ? `?${query}` : ""}`);
+  return `/records${query ? `?${query}` : ""}`;
 }
 
 /** GET /records/:id */

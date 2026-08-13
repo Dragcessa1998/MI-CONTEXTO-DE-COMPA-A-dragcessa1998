@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { deleteRecord, getRecord } from "@/lib/api";
 import type { TrackerRecord } from "@/types/tracker";
 import { formatDate } from "@/lib/format";
-import { LoadingState, ErrorState, StatusBadge, StageBadge } from "./ui";
+import { LoadingState, ErrorState, StatusBadge, StageBadge, SuccessBanner } from "./ui";
 import StatusStageControls from "./StatusStageControls";
 import NotesSection from "./NotesSection";
 
@@ -20,7 +20,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function CandidateDetail({ id }: { id: string }) {
+export default function CandidateDetail({
+  id,
+  saved,
+}: {
+  id: string;
+  saved?: "created" | "updated";
+}) {
   const router = useRouter();
   const [record, setRecord] = useState<TrackerRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +76,16 @@ export default function CandidateDetail({ id }: { id: string }) {
       <Link href="/" className="inline-flex items-center text-sm font-medium text-brand-600 hover:text-brand-700">
         ← Volver al listado
       </Link>
+
+      {saved && (
+        <SuccessBanner
+          message={
+            saved === "created"
+              ? "Candidatura registrada correctamente."
+              : "Datos de la candidatura actualizados correctamente."
+          }
+        />
+      )}
 
       <header className="rounded-xl border border-slate-200 bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">

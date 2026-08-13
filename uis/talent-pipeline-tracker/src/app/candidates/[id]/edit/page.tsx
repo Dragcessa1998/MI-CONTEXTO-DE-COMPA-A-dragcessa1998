@@ -1,9 +1,10 @@
 import CandidateForm from "@/components/CandidateForm";
 
-export default function EditCandidatePage({
+export default async function EditCandidatePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  return <CandidateForm mode="edit" recordId={params.id} />;
+  const { id } = await params;
+  return <CandidateForm mode="edit" recordId={id} />;
 }

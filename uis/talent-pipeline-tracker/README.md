@@ -18,6 +18,10 @@ Herramienta interna del equipo de **People & Talent de Nexova** para gestionar l
 cd uis/talent-pipeline-tracker
 cp .env.example .env.local      # define NEXT_PUBLIC_API_URL
 npm install
+npm run lint
+npm run typecheck
+npm test
+npm run build
 npm run dev                     # http://localhost:3000
 ```
 
@@ -40,3 +44,5 @@ src/
 ```
 
 Las etiquetas de estado/etapa se muestran siempre legibles (p. ej. `in_progress` → **En proceso**); los valores crudos de la API nunca aparecen en la interfaz.
+
+Las pruebas unitarias cubren la serialización y los errores del servicio HTTP, además de la combinación de filtros por estado, etapa, nombre y email.

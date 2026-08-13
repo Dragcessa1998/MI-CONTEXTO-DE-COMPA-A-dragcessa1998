@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { listRecords } from "@/lib/api";
+import { filterRecords } from "@/lib/filters";
 import type { TrackerRecord } from "@/types/tracker";
 import Filters from "./Filters";
 import CandidateTable from "./CandidateTable";
@@ -28,8 +29,9 @@ export default function CandidatesView() {
     setError(null);
     try {
       const response = await listRecords({ status, stage, search });
-      setRecords(response.data);
-      setTotal(response.total);
+      const visibleRecords = filterRecords(response.data, { status, stage, search });
+      setRecords(visibleRecords);
+      setTotal(visibleRecords.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido al cargar las candidaturas");
     } finally {

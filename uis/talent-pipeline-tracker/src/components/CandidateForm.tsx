@@ -125,10 +125,10 @@ export default function CandidateForm({ mode, recordId }: CandidateFormProps) {
     try {
       if (mode === "create") {
         const created = await createRecord(payload);
-        router.push(`/candidates/${created.id}`);
+        router.push(`/candidates/${created.id}?saved=created`);
       } else if (recordId) {
         await updateRecord(recordId, payload);
-        router.push(`/candidates/${recordId}`);
+        router.push(`/candidates/${recordId}?saved=updated`);
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "No se pudo guardar la candidatura");

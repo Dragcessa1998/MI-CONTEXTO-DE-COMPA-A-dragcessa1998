@@ -1,9 +1,14 @@
 import CandidateDetail from "@/components/CandidateDetail";
 
-export default function CandidateDetailPage({
+export default async function CandidateDetailPage({
   params,
+  searchParams,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string }>;
 }) {
-  return <CandidateDetail id={params.id} />;
+  const { id } = await params;
+  const { saved } = await searchParams;
+  const savedState = saved === "created" || saved === "updated" ? saved : undefined;
+  return <CandidateDetail id={id} saved={savedState} />;
 }
