@@ -1,19 +1,17 @@
-"""
-Inicialización de TinyDB para el Directorio de Proveedores.
+"""Conexiones de Nexova: TinyDB para identidad y SQLModel para inventario."""
 
-TinyDB persiste en un archivo JSON junto al código: los datos sobreviven a los
-reinicios del servidor (requisito de la rúbrica). Se migrará a Postgres cuando
-el ORM esté listo, según la nota del tech lead.
-"""
-
+import os
+from collections.abc import Generator
 from pathlib import Path
 from threading import RLock
 from typing import Any
 
+from sqlmodel import Session, SQLModel, create_engine
 from tinydb import TinyDB
 from tinydb.table import Document, Table
 
 DB_PATH = Path(__file__).resolve().parent / "suppliers.db.json"
+INVENTORY_DB_PATH = Path(__file__).resolve().parent / "inventory.db"
 
 _db: TinyDB | None = None
 _db_lock = RLock()
@@ -59,7 +57,7 @@ class LockedTable:
             return len(self._table)
 
 
-def get_db() -> TinyDB:
+def get_tinydb() -> TinyDB:
     """Devuelve la instancia única de TinyDB (la crea en el primer uso)."""
     global _db
     with _db_lock:
@@ -70,19 +68,53 @@ def get_db() -> TinyDB:
 
 def suppliers_table() -> LockedTable:
     """Tabla de proveedores."""
-    return LockedTable(get_db().table("suppliers"))
+    return LockedTable(get_tinydb().table("suppliers"))
 
 
 def users_table() -> LockedTable:
     """Credenciales y autorización de usuarios (solo TinyDB)."""
-    return LockedTable(get_db().table("users"))
+    return LockedTable(get_tinydb().table("users"))
 
 
 def profiles_table() -> LockedTable:
     """Datos personales separados de las credenciales, enlazados por user_id."""
-    return LockedTable(get_db().table("profiles"))
+    return LockedTable(get_tinydb().table("profiles"))
 
 
 def incidents_table() -> LockedTable:
     """Incidentes operativos centralizados de Nexova."""
-    return LockedTable(get_db().table("incidents"))
+    return LockedTable(get_tinydb().table("incidents"))
+
+
+def _inventory_database_url() -> str:
+    configured = os.getenv("DATABASE_URL", "").strip()
+    if configured:
+        # SQLAlchemy 2 expects the explicit postgresql scheme.
+        if configured.startswith("postgres://"):
+            return "postgresql://" + configured.removeprefix("postgres://")
+        return configured
+    return f"sqlite:///{INVENTORY_DB_PATH}"
+
+
+def _build_inventory_engine(database_url: str):
+    options: dict[str, Any] = {"pool_pre_ping": True}
+    if database_url.startswith("sqlite"):
+        options["connect_args"] = {"check_same_thread": False}
+    return create_engine(database_url, **options)
+
+
+# El engine puede ser global; la sesión no. Cada petición recibe una sesión nueva.
+inventory_engine = _build_inventory_engine(_inventory_database_url())
+
+
+def get_db() -> Generator[Session, None, None]:
+    """Inyecta una sesión SQLModel por petición para los datos de inventario."""
+    with Session(inventory_engine) as session:
+        yield session
+
+
+def create_inventory_schema() -> None:
+    """Crea las tablas ORM en Supabase (o SQLite local) al arrancar."""
+    import inventory_models  # noqa: F401 -- registra modelos en metadata
+
+    SQLModel.metadata.create_all(inventory_engine)

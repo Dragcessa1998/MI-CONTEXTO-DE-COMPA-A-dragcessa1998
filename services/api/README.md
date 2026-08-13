@@ -5,7 +5,7 @@ formación, nóminas, oficinas…), en sustitución de la hoja de cálculo que P
 (HR Manager) compartía por email. Proyecto del syllabus **"Supplier Directory — Lightweight
 Storage API"**, solicitado por el CTO Sergio Molina.
 
-**Stack:** FastAPI + TinyDB + Pydantic + JWT, gestionado con [`uv`](https://docs.astral.sh/uv/).
+**Stack:** FastAPI + TinyDB + SQLModel/PostgreSQL + Pydantic + JWT, gestionado con [`uv`](https://docs.astral.sh/uv/).
 El modelo, las categorías, los estados y los datos del seeder replican **exactamente**
 [CONTEXT.md](CONTEXT.md) (CONTEXT-nexova · supplier-directory).
 
@@ -15,6 +15,7 @@ El modelo, las categorías, los estados y los datos del seeder replican **exacta
 cd services/api
 cp .env.example .env                 # sustituye JWT_SECRET por un secreto aleatorio
 uv run seed                          # carga inicial (idempotente, confirma el conteo)
+uv run seed-inventory                # 6 assets, 4 entradas y 3 salidas (idempotente)
 uv run uvicorn main:app --port 8000  # API + Swagger UI en http://localhost:8000/docs
 uv run --group dev pytest -q         # pruebas de aceptación en TinyDB aislada
 ```
@@ -23,6 +24,10 @@ uv run --group dev pytest -q         # pruebas de aceptación en TinyDB aislada
 
 Genera un secreto local seguro, por ejemplo con `openssl rand -hex 32`, y no lo
 subas al repositorio. `ACCESS_TOKEN_EXPIRE_MINUTES` controla la vida del token.
+
+Para Supabase, copia en `DATABASE_URL` la URI del **Transaction pooler**. Si la
+variable está vacía, el desarrollo local usa `inventory.db`, que está ignorado
+por Git. TinyDB sigue siendo la fuente exclusiva de usuarios y autenticación.
 
 ## Autenticación
 
@@ -78,6 +83,28 @@ tras sembrar es: estados 27 abiertos, 56 resueltos y 13 descartados; categorías
 Las excepciones no controladas responden con un `500` genérico y nunca exponen
 una traza. Un bloqueo reentrante serializa cada operación completa de TinyDB,
 porque FastAPI atiende en paralelo y JSONStorage comparte un cursor de archivo.
+
+## Inventario con ORM y doble base de datos
+
+El inventario de equipos de Nexova vive en PostgreSQL/Supabase mediante SQLModel,
+mientras usuarios y JWT permanecen en TinyDB. Cada petición obtiene su propia
+sesión SQLModel mediante `Depends(get_db)`; no existe una sesión global.
+
+- `Asset`, `AssetEntry` y `AssetExit` respetan los nombres del contexto NXV-0201.
+- `current_stock` no es una columna: se calcula como entradas menos salidas por
+  activo y oficina.
+- Una salida que exceda el stock se rechaza con `400` antes de persistir.
+- `allocation` exige `assigned_to`; `consumption` exige que sea nulo.
+- Todas las escrituras guardan el UUID del usuario TinyDB autenticado.
+- El listado de órdenes precarga el activo con `selectinload`, evitando N+1.
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| GET/POST | `/inventory/products` | Lista con stock calculado / alta autenticada |
+| GET | `/inventory/products/{id}` | Detalle con stock calculado |
+| POST | `/inventory/orders/inbound` | Registra recepción autenticada |
+| POST | `/inventory/orders/outbound` | Registra asignación/consumo autenticado |
+| GET | `/inventory/orders` | Entradas y salidas con datos del activo |
 
 ### Solución de problemas (macOS)
 
@@ -135,13 +162,15 @@ services/api/
   auth_service.py   ← CRUD TinyDB sin acoplarlo a HTTP
   security.py       ← bcrypt, JWT y get_current_user
   incident_models.py / incident_service.py
-  database.py       ← tablas suppliers/users/profiles/incidents en TinyDB
+  inventory_models.py / schemas.py / inventory_seed.py
+  database.py       ← TinyDB + engine SQLModel + sesión por petición
   routes/
     auth.py         ← login y usuario autenticado
     users.py        ← registro y CRUD protegido
     profiles.py     ← perfil propio protegido
     suppliers.py    ← seis operaciones protegidas del directorio
     incidents.py    ← CRUD, filtros, ciclo de vida y resumen
+    inventory.py    ← activos, entradas, salidas y stock derivado
   seed.py           ← carga inicial (uv run seed)
 ```
 

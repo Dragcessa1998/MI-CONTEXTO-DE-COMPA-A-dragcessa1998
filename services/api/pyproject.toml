@@ -1,7 +1,7 @@
 [project]
 name = "nexova-supplier-api"
 version = "3.0.0"
-description = "API operativa de Nexova: JWT, proveedores e incidentes en TinyDB"
+description = "API operativa de Nexova: TinyDB para identidad y SQLModel para inventario"
 requires-python = ">=3.11"
 dependencies = [
     "email-validator>=2.2",
@@ -13,6 +13,8 @@ dependencies = [
     "uvicorn>=0.32",
     "tinydb>=4.8",
     "pydantic>=2.9",
+    "psycopg2-binary>=2.9",
+    "sqlmodel>=0.0.24",
 ]
 
 [dependency-groups]
@@ -24,6 +26,7 @@ dev = [
 
 [project.scripts]
 seed = "seed:main"
+seed-inventory = "inventory_seed:main"
 
 [tool.uv.sources]
 nexova-shared = { path = "../../packages/shared", editable = true }
@@ -33,7 +36,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "models", "database", "seed"]
+py-modules = ["main", "models", "database", "seed", "inventory_models", "schemas", "inventory_seed"]
 packages = ["routes"]
 
 [tool.pytest.ini_options]

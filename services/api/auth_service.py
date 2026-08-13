@@ -1,6 +1,7 @@
 """Servicio de usuarios y perfiles sobre TinyDB, independiente de HTTP."""
 
 from datetime import datetime, timezone
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from tinydb import Query
 
@@ -13,12 +14,21 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _record_with_uuid(record: dict) -> dict:
+    """Migra de forma estable usuarios TinyDB creados antes del hito de inventario."""
+    normalized = dict(record)
+    if not normalized.get("uuid"):
+        normalized["uuid"] = str(uuid5(NAMESPACE_URL, f"nexova-user:{normalized['id']}"))
+        users_table().update({"uuid": normalized["uuid"]}, Query().id == normalized["id"])
+    return normalized
+
+
 def _user_record(record: dict) -> UserRecord:
-    return UserRecord.model_validate(record)
+    return UserRecord.model_validate(_record_with_uuid(record))
 
 
 def _user_out(record: dict) -> UserOut:
-    return UserOut.model_validate(record)
+    return UserOut.model_validate(_record_with_uuid(record))
 
 
 def get_user_by_id(user_id: int) -> UserRecord | None:
@@ -40,6 +50,7 @@ def create_user(payload: UserCreate) -> tuple[UserOut, ProfileOut]:
     """Crea credenciales y perfil uno-a-uno; revierte el usuario si falla el perfil."""
     table = users_table()
     record = {
+        "uuid": str(uuid4()),
         "email": str(payload.email),
         "hashed_password": hash_password(payload.password),
         "is_active": True,

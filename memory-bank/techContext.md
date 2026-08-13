@@ -30,6 +30,10 @@
 - **Frontend:** **Next.js (App Router) + React + Tailwind CSS**. Estado a nivel de componente con hooks; sin librerías externas de estado (Redux/Zustand) salvo justificación.
 - **Lógica de negocio:** vive una sola vez en `/src` (Hito 2: scoring/matching de candidatos). Las apps la **importan**, no la copian (evita duplicación).
 - **APIs/Backend:** todo lo de servidor va en `/services` (desde el Hito 5).
+- **Persistencia Hito ORM:** identidad/autenticación permanece en TinyDB;
+  inventario usa SQLModel sobre `DATABASE_URL` (Supabase PostgreSQL en producción,
+  SQLite local como fallback). El engine se comparte y cada petición recibe una
+  sesión independiente mediante `Depends(get_db)`.
 - **Web pública** → `uis/website`; **lógica interna/dashboards** → `uis/backoffice`, con **layouts separados**.
 - **Config por entorno:** variables vía `.env.local` (NO se commitea); cada app incluye `.env.example`.
 - **CONTEXT por hito:** `CONTEXT.md` se reemplaza con el contexto del hito actual (`content/contexts/<NN>/CONTEXT-nexova.es.md` del syllabus).
@@ -40,6 +44,8 @@
 - **Hito 2** (`/src`): utilidades TS puras (colecciones, búsqueda lineal/binaria, scoring, agregaciones, validaciones). Verificación: `tsc --noEmit` + `tsx src/demo.ts`.
 - **Hito 3** (`uis/talent-pipeline-tracker`): Next.js 14 + React 18 sobre la API del curso `https://playground.4geeks.com/tracker/api/v1`. Filtros/búsqueda por query params; PATCH estado/etapa; notas CRUD; alta/edición.
 - **Hito 4** (`uis/website`, `uis/backoffice`): migración de la web a Next.js + app interna que **importa** la lógica del Hito 2.
+- **Hito ORM de inventario** (`services/api`): `Asset`, `AssetEntry` y `AssetExit`,
+  rutas `/inventory`, stock derivado y trazabilidad por UUID TinyDB.
 
 ## Convenciones
 

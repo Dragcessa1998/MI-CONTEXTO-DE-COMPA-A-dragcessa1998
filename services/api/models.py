@@ -12,6 +12,22 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+# El hito de inventario mantiene sus modelos ORM en un módulo dedicado para no
+# mezclar contratos históricos de proveedores con tablas SQL. Se reexportan aquí
+# para conservar la ruta `models.py` pedida por la rúbrica del monorepo.
+from inventory_models import Asset, AssetEntry, AssetExit
+
+__all__ = [
+    "Asset",
+    "AssetEntry",
+    "AssetExit",
+    "SupplierIn",
+    "SupplierOut",
+    "SupplierStatus",
+    "RateUpdate",
+    "StatusUpdate",
+]
+
 # Categorías válidas (lista literal del CONTEXT).
 VALID_CATEGORIES = [
     "job_boards",

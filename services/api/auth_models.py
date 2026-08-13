@@ -70,6 +70,7 @@ class UserRecord(BaseModel):
     """Representación interna. Nunca debe usarse como response_model."""
 
     id: int
+    uuid: str
     email: EmailStr
     hashed_password: str
     is_active: bool
@@ -79,6 +80,7 @@ class UserRecord(BaseModel):
 
 class UserOut(BaseModel):
     id: int
+    uuid: str
     email: EmailStr
     is_active: bool
     role: UserRole
