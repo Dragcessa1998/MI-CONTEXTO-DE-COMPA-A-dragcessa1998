@@ -89,6 +89,22 @@ export interface IncidentFilters {
   category?: string;
 }
 
+export interface IncidentAnalysisSummary {
+  source_file: string;
+  total_records: number;
+  valid_records: number;
+  invalid_records: number;
+  invalid_breakdown: Record<string, number>;
+  category_breakdown: Record<string, number>;
+  status_breakdown: Record<string, number>;
+  satisfaction: {
+    closed_tickets: number;
+    scored_tickets: number;
+    average_score: number | null;
+    score_breakdown: Record<string, number>;
+  };
+}
+
 export class IncidentApiError extends Error {
   constructor(
     message: string,
@@ -166,4 +182,54 @@ export const incidentsApi = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+  analyze: async (file: File): Promise<IncidentAnalysisSummary> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return requestAnalysis<IncidentAnalysisSummary>("/api/incidents/analyze", {
+      method: "POST",
+      body: formData,
+    });
+  },
+  exportAnalysis: async (): Promise<Blob> => {
+    const token = sessionToken();
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}/api/incidents/results/export`, {
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } catch {
+      throw new IncidentApiError("No se pudo conectar con el servicio de incidentes.");
+    }
+    if (!response.ok) {
+      throw new IncidentApiError(
+        response.status === 401
+          ? "Tu sesión no es válida o ha expirado."
+          : "No hay resultados disponibles para descargar.",
+        response.status,
+      );
+    }
+    return response.blob();
+  },
 };
+
+async function requestAnalysis<T>(path: string, init: RequestInit): Promise<T> {
+  const token = sessionToken();
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...init,
+      cache: "no-store",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  } catch {
+    throw new IncidentApiError("No se pudo conectar con el servicio de incidentes.");
+  }
+
+  const body = (await response.json().catch(() => null)) as { detail?: unknown } | null;
+  if (!response.ok) {
+    const detail = typeof body?.detail === "string" ? body.detail : "No se pudo analizar el archivo.";
+    throw new IncidentApiError(detail, response.status);
+  }
+  return body as T;
+}

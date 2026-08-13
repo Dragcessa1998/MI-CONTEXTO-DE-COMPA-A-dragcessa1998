@@ -70,6 +70,14 @@ La URL se configura con `NEXT_PUBLIC_PLATFORM_API_URL` (por defecto
 services/api/.venv/bin/python scripts/seed_incidents.py
 ```
 
+## Analizador CSV de incidentes (`/incident-analysis`)
+
+Página accesible desde el menú del backoffice. Permite seleccionar un CSV,
+enviarlo como `multipart/form-data` a la API y ver totales, inválidos por regla,
+categorías, estados y satisfacción. Incluye estados de carga/error, etiquetas de
+dominio legibles y descarga autenticada de `results.csv`. La interfaz solo recibe
+métricas agregadas; nunca muestra emails ni descripciones individuales.
+
 ## Ejecutar (API + backoffice)
 
 El panel necesita la API corriendo. En **dos terminales**:

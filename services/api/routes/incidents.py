@@ -1,6 +1,15 @@
-"""API autenticada del gestor centralizado de incidentes."""
+"""API autenticada del gestor centralizado y analizador de incidentes."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from threading import Lock
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import Response
+from nexova_shared.incident_analysis import (
+    IncidentAnalysis,
+    IncidentAnalysisError,
+    analysis_to_csv,
+    analyze_csv_bytes,
+)
 from nexova_shared.incidents import (
     INCIDENT_BRANCHES,
     INCIDENT_CATEGORIES,
@@ -26,6 +35,9 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 
+_analysis_lock = Lock()
+_last_analysis: IncidentAnalysis | None = None
+
 
 def _validate_filter(field: str, value: str | None, allowed: tuple[str, ...]) -> None:
     if value is not None and value not in allowed:
@@ -33,6 +45,54 @@ def _validate_filter(field: str, value: str | None, allowed: tuple[str, ...]) ->
             status_code=400,
             detail={"field": field, "message": f"Valor no permitido para {field}"},
         )
+
+
+@router.post("/analyze")
+async def analyze_incidents_file(
+    file: UploadFile = File(...),
+) -> dict[str, object]:
+    global _last_analysis
+
+    filename = file.filename or "incidents.csv"
+    if not filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="El archivo debe tener extensión .csv")
+    try:
+        content = await file.read()
+    finally:
+        await file.close()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="El archivo supera el límite de 10 MB",
+        )
+    try:
+        analysis = analyze_csv_bytes(content, source_file=filename)
+    except IncidentAnalysisError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    with _analysis_lock:
+        _last_analysis = analysis
+    return analysis.as_dict()
+
+
+@router.get("/results/export")
+def export_incident_analysis() -> Response:
+    with _analysis_lock:
+        analysis = _last_analysis
+    if analysis is None:
+        raise HTTPException(status_code=404, detail="Todavía no hay un análisis para exportar")
+    return Response(
+        content=analysis_to_csv(analysis),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="results.csv"'},
+    )
+
+
+def reset_last_analysis() -> None:
+    """Aísla el estado en memoria entre pruebas."""
+    global _last_analysis
+    with _analysis_lock:
+        _last_analysis = None
 
 
 @router.post("", status_code=201, response_model=IncidentOut)

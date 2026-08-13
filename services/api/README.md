@@ -74,10 +74,30 @@ tras sembrar es: estados 27 abiertos, 56 resueltos y 13 descartados; categorías
 | GET | `/api/incidents/summary` | Totales por estado, categoría, origen y sede |
 | GET | `/api/incidents/{id}` | Detalle o `404` |
 | PATCH | `/api/incidents/{id}/status` | Solo transiciones válidas del ciclo de vida |
+| POST | `/api/incidents/analyze` | Recibe CSV multipart y devuelve métricas agregadas |
+| GET | `/api/incidents/results/export` | Descarga el último análisis como `results.csv` |
 
 Las excepciones no controladas responden con un `500` genérico y nunca exponen
 una traza. Un bloqueo reentrante serializa cada operación completa de TinyDB,
 porque FastAPI atiende en paralelo y JSONStorage comparte un cursor de archivo.
+
+### Analizador de archivos de incidentes
+
+La lógica del proyecto **Company Incident File Analyzer** vive una sola vez en
+`packages/shared/nexova_shared/incident_analysis.py`. El script raíz `analyze.py`
+y los dos endpoints anteriores importan ese módulo; no duplican validaciones ni
+cálculos. Contra `data/incidents-nexova.csv` produce exactamente 100 filas, 96
+válidas, 4 inválidas, categorías 28/18/21/17/12, estados 27/56/13 y satisfacción
+media 3,84. Ninguna salida incluye emails ni datos de filas individuales.
+
+```bash
+# CLI interactiva; responde y para crear results.csv
+python analyze.py data/incidents-nexova.csv
+
+# 46 pruebas: regresiones previas + CLI + análisis + upload/export
+cd services/api
+uv run --group dev pytest -q
+```
 
 ### Solución de problemas (macOS)
 

@@ -30,6 +30,10 @@
 - **Frontend:** **Next.js (App Router) + React + Tailwind CSS**. Estado a nivel de componente con hooks; sin librerías externas de estado (Redux/Zustand) salvo justificación.
 - **Lógica de negocio:** vive una sola vez en `/src` (Hito 2: scoring/matching de candidatos). Las apps la **importan**, no la copian (evita duplicación).
 - **APIs/Backend:** todo lo de servidor va en `/services` (desde el Hito 5).
+- **Análisis de incidentes:** la validación, agregación y exportación CSV viven en
+  `packages/shared/nexova_shared/incident_analysis.py`; tanto `analyze.py` como
+  FastAPI importan esa fuente única. El último resumen exportable se mantiene en
+  memoria y nunca contiene PII de filas individuales.
 - **Web pública** → `uis/website`; **lógica interna/dashboards** → `uis/backoffice`, con **layouts separados**.
 - **Config por entorno:** variables vía `.env.local` (NO se commitea); cada app incluye `.env.example`.
 - **CONTEXT por hito:** `CONTEXT.md` se reemplaza con el contexto del hito actual (`content/contexts/<NN>/CONTEXT-nexova.es.md` del syllabus).
