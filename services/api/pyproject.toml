@@ -19,6 +19,7 @@ dependencies = [
 dev = [
     "httpx>=0.27,<1",
     "pytest>=8.3,<9",
+    "pytest-cov>=6,<7",
 ]
 
 [project.scripts]
@@ -34,3 +35,15 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 py-modules = ["main", "models", "database", "seed"]
 packages = ["routes"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+source = ["auth_service", "security", "routes.auth", "routes.users"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

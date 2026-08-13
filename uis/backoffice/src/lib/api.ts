@@ -69,7 +69,7 @@ export interface ProcessDto {
 }
 
 /** Extrae solo mensajes públicos del contrato de error de la API. */
-function extractError(body: unknown): string | null {
+export function extractError(body: unknown): string | null {
   if (body && typeof body === "object") {
     const b = body as {
       errors?: unknown;
@@ -89,7 +89,7 @@ function extractError(body: unknown): string | null {
   return null;
 }
 
-function safeHttpMessage(status: number): string {
+export function safeHttpMessage(status: number): string {
   if (status === 400 || status === 422) return "Revisa los datos enviados e inténtalo de nuevo.";
   if (status === 401) return "Tu sesión no es válida. Inicia sesión de nuevo.";
   if (status === 403) return "No tienes permiso para realizar esta acción.";

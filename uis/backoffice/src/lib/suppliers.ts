@@ -79,7 +79,7 @@ export type SupplierInput = Omit<Supplier, "id" | "rate_updated_at">;
 
 /** Convierte el cuerpo de error de FastAPI en un mensaje legible.
  *  422 → {"detail": [{loc, msg, ...}]} · 404 → {"detail": "..."} */
-function extractFastApiError(body: unknown): string | null {
+export function extractFastApiError(body: unknown): string | null {
   if (!body || typeof body !== "object") return null;
   const detail = (body as { detail?: unknown }).detail;
   if (typeof detail === "string") return detail;
