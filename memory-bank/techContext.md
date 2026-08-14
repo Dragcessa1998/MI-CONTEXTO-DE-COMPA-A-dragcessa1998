@@ -35,6 +35,7 @@
 - **Desarrollo reproducible:** Docker Compose orquesta un contenedor UI (website + backoffice) y FastAPI; Next actúa como proxy same-origin hacia `http://backend:8000` en la red `nexova-dev`.
 - **Contrato de telemetría:** envelope JSON Schema 1.0.0 en `docs/telemetry/` con `requestId`, allowlists estrictas por evento, outbox para negocio y separación stream/batch por urgencia.
 - **Persistencia de telemetría:** tabla Supabase/Postgres append-only de ocho columnas, índices por tiempo/tipo y GIN para tags. FastAPI valida cada evento de un lote y envía los válidos mediante una sola petición REST; la service-role key sólo existe en el entorno backend.
+- **Informe técnico de telemetría:** paquete Python instalable en `services/telemetry` (Pandas) con carga PostgREST acotada por periodo/tipo, cuatro métricas operacionales y resultados serialisables. FastAPI sirve `GET /telemetry/report` con una ventana UTC única y caché en memoria de 60 s; el backoffice lo visualiza en `/telemetry`.
 - **CONTEXT por hito:** `CONTEXT.md` se reemplaza con el contexto del hito actual (`content/contexts/<NN>/CONTEXT-nexova.es.md` del syllabus).
 
 ## Estado del stack por hito

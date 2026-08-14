@@ -13,6 +13,7 @@ dependencies = [
     "uvicorn>=0.32",
     "tinydb>=4.8",
     "pydantic>=2.9",
+    "nexova-telemetry",
 ]
 
 [dependency-groups]
@@ -26,6 +27,7 @@ seed = "seed:main"
 
 [tool.uv.sources]
 nexova-shared = { path = "../../packages/shared", editable = true }
+nexova-telemetry = { path = "../telemetry", editable = true }
 
 [build-system]
 requires = ["setuptools>=68"]
