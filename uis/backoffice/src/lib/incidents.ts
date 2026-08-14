@@ -1,3 +1,5 @@
+import { currentTelemetryOffice, track } from "@/services/telemetry";
+
 const API_URL =
   process.env.NEXT_PUBLIC_PLATFORM_API_URL ??
   process.env.NEXT_PUBLIC_SUPPLIERS_API_URL ??
@@ -104,7 +106,9 @@ function sessionToken(): string {
 }
 
 async function request<T>(path: string, init?: RequestInit, authenticated = true): Promise<T> {
+  const startedAt = typeof performance === "undefined" ? Date.now() : performance.now();
   let response: Response;
+  let responseStatus = 500;
   const token = authenticated ? sessionToken() : "";
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -116,7 +120,9 @@ async function request<T>(path: string, init?: RequestInit, authenticated = true
         ...(init?.headers ?? {}),
       },
     });
+    responseStatus = response.status;
   } catch {
+    trackApiLatency(path, init?.method, responseStatus, startedAt);
     throw new IncidentApiError("No se pudo conectar con el servicio de incidentes. Inténtalo de nuevo.");
   }
 
@@ -127,6 +133,7 @@ async function request<T>(path: string, init?: RequestInit, authenticated = true
     body = null;
   }
   if (!response.ok) {
+    trackApiLatency(path, init?.method, responseStatus, startedAt);
     const payload = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
     const fields = payload.fields && typeof payload.fields === "object"
       ? (payload.fields as Record<string, string>)
@@ -140,7 +147,22 @@ async function request<T>(path: string, init?: RequestInit, authenticated = true
           : "No pudimos completar la operación. Inténtalo de nuevo.";
     throw new IncidentApiError(safeMessage, response.status, fields);
   }
+  trackApiLatency(path, init?.method, responseStatus, startedAt);
   return body as T;
+}
+
+function trackApiLatency(path: string, method: string | undefined, status: number, startedAt: number): void {
+  const finishedAt = typeof performance === "undefined" ? Date.now() : performance.now();
+  const normalizedPath = path.split("?")[0].replace(/\/\d+(?=\/|$)/g, "/{id}");
+  const normalizedMethod = (method ?? "GET").toUpperCase();
+  track("api_latency_recorded", {
+    route_template: normalizedPath,
+    method: normalizedMethod,
+    status_class: `${Math.max(2, Math.min(5, Math.floor(status / 100)))}xx`,
+    duration_ms: Math.max(0, Math.round(finishedAt - startedAt)),
+    office: currentTelemetryOffice(),
+    sample_rate: 1,
+  });
 }
 
 export const incidentsApi = {
@@ -150,6 +172,7 @@ export const incidentsApi = {
       { method: "POST", body: JSON.stringify({ email, password }) },
       false,
     ),
+  me: () => request<{ id: number; role: "admin" | "manager" | "user" }>("/auth/me"),
   list: (filters: IncidentFilters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {

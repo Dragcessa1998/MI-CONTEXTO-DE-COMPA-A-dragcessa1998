@@ -230,7 +230,7 @@
           "required": ["office", "actor_role", "auth_method", "reason_code", "attempt_count_bucket"],
           "properties": {
             "office": { "$ref": "#/definitions/technicalOffice" }, "actor_role": { "$ref": "#/definitions/actorRole" }, "auth_method": { "type": "string", "enum": ["password", "sso", "magic_link"] },
-            "reason_code": { "type": "string", "enum": ["invalid_credentials", "inactive_user", "expired_link", "rate_limited", "provider_error"] }, "attempt_count_bucket": { "type": "string", "enum": ["1", "2_3", "4_5", "6_plus"] }
+            "reason_code": { "type": "string", "enum": ["invalid_credentials", "session_expired", "network_error", "inactive_user", "expired_link", "rate_limited", "provider_error"] }, "attempt_count_bucket": { "type": "string", "enum": ["1", "2_3", "4_5", "6_plus"] }
           }
         }
       }

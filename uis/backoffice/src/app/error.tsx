@@ -1,6 +1,15 @@
 "use client";
 
-export default function BackofficeError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+import { useEffect } from "react";
+
+import { sectionFromPath } from "@/components/TelemetryProvider";
+import { trackFrontendError } from "@/services/telemetry";
+
+export default function BackofficeError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => {
+    trackFrontendError(error, true, sectionFromPath(window.location.pathname));
+  }, [error]);
+
   return (
     <section role="alert" className="mx-auto max-w-xl rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-900">
       <h2 className="text-xl font-bold">No pudimos mostrar esta sección</h2>

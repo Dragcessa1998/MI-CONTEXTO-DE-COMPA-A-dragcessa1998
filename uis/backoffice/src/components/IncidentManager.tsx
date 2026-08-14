@@ -24,6 +24,15 @@ import {
   type IncidentStatus,
   type IncidentSummary,
 } from "@/lib/incidents";
+import {
+  clearTelemetryIdentity,
+  currentTelemetryActorRole,
+  currentTelemetryOffice,
+  restoreTelemetryIdentity,
+  startTelemetrySession,
+  track,
+  type TelemetryActorRole,
+} from "@/services/telemetry";
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 
@@ -43,6 +52,7 @@ export default function IncidentManager() {
   const [password, setPassword] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [loginAttempts, setLoginAttempts] = useState(0);
   const [filters, setFilters] = useState<IncidentFilters>({});
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [listState, setListState] = useState<LoadState>("idle");
@@ -56,8 +66,23 @@ export default function IncidentManager() {
     setSessionReady(true);
   }, []);
 
+  useEffect(() => {
+    if (!token) return;
+    void incidentsApi.me().then((user) => {
+      restoreTelemetryIdentity(String(user.id), telemetryRole(user.role));
+    }).catch(() => undefined);
+  }, [token]);
+
   const expireSession = useCallback(() => {
+    track("session_expired", {
+      office: currentTelemetryOffice(),
+      actor_role: currentTelemetryActorRole(),
+      section: "incidents",
+      session_age_bucket: "15m_1h",
+      had_unsaved_changes: false,
+    });
     window.localStorage.removeItem(SESSION_TOKEN_KEY);
+    clearTelemetryIdentity();
     setToken("");
     setLoginError("Tu sesión ha expirado. Inicia sesión de nuevo.");
   }, []);
@@ -111,9 +136,29 @@ export default function IncidentManager() {
     try {
       const result = await incidentsApi.login(email, password);
       window.localStorage.setItem(SESSION_TOKEN_KEY, result.access_token);
+      const user = await incidentsApi.me();
+      const actorRole = telemetryRole(user.role);
+      startTelemetrySession(String(user.id), actorRole);
+      track("login_succeeded", {
+        office: currentTelemetryOffice(),
+        actor_role: actorRole,
+        auth_method: "password",
+      });
       setToken(result.access_token);
       setPassword("");
-    } catch {
+      setLoginAttempts(0);
+    } catch (error) {
+      const attempts = loginAttempts + 1;
+      setLoginAttempts(attempts);
+      track("login_failed", {
+        office: currentTelemetryOffice(),
+        actor_role: "unknown",
+        auth_method: "password",
+        reason_code: error instanceof IncidentApiError && error.status === 401
+          ? "invalid_credentials"
+          : "network_error",
+        attempt_count_bucket: attempts === 1 ? "1" : attempts <= 3 ? "2_3" : attempts <= 5 ? "4_5" : "6_plus",
+      });
       setLoginError("No pudimos iniciar sesión. Revisa el email y la contraseña.");
     } finally {
       setLoginBusy(false);
@@ -122,6 +167,7 @@ export default function IncidentManager() {
 
   function signOut() {
     window.localStorage.removeItem(SESSION_TOKEN_KEY);
+    clearTelemetryIdentity();
     setToken("");
     setIncidents([]);
     setSummary(null);
@@ -214,6 +260,12 @@ export default function IncidentManager() {
       />
     </div>
   );
+}
+
+function telemetryRole(role: "admin" | "manager" | "user"): TelemetryActorRole {
+  if (role === "admin") return "admin";
+  if (role === "manager") return "hr_manager";
+  return "operator";
 }
 
 function IncidentForm({
