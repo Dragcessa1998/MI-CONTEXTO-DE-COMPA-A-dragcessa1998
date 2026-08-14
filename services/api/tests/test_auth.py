@@ -24,7 +24,10 @@ def user_payload(email: str = "maria@nexova.example", **overrides) -> dict:
 def register(client: TestClient, email: str = "maria@nexova.example", **overrides) -> dict:
     response = client.post("/users", json=user_payload(email, **overrides))
     assert response.status_code == 201
-    return response.json()
+    body = response.json()
+    assert "email" not in body
+    body["_email"] = email.strip().lower()
+    return body
 
 
 def login(client: TestClient, email: str, password: str = "SecurePassword-2026!") -> str:
@@ -48,7 +51,6 @@ def test_registration_hashes_password_and_creates_separate_profile(
     assert body["is_active"] is True
     assert body["profile"] == {
         "id": 1,
-        "user_id": body["id"],
         "name": "María López",
         "phone": "+34 600 000 001",
         "address": "Valencia",
@@ -70,7 +72,8 @@ def test_registration_normalizes_email_and_rejects_duplicates(
     second = anonymous_client.post("/users", json=user_payload("maria@nexova.example"))
 
     assert first.status_code == 201
-    assert first.json()["email"] == "maria@nexova.example"
+    assert "email" not in first.json()
+    assert database.users_table().get(Query().email == "maria@nexova.example") is not None
     assert second.status_code == 409
 
 
@@ -95,12 +98,12 @@ def test_login_returns_signed_jwt_and_rejects_wrong_credentials(
     anonymous_client: TestClient,
 ):
     user = register(anonymous_client)
-    token = login(anonymous_client, user["email"])
+    token = login(anonymous_client, user["_email"])
 
     assert anonymous_client.get("/auth/me", headers=bearer(token)).status_code == 200
     wrong = anonymous_client.post(
         "/auth/login",
-        json={"email": user["email"], "password": "incorrect-password"},
+        json={"email": user["_email"], "password": "incorrect-password"},
     )
     unknown = anonymous_client.post(
         "/auth/login",
@@ -115,7 +118,7 @@ def test_oauth2_form_adapter_supports_swagger_authorize(anonymous_client: TestCl
 
     response = anonymous_client.post(
         "/auth/token",
-        data={"username": user["email"], "password": "SecurePassword-2026!"},
+        data={"username": user["_email"], "password": "SecurePassword-2026!"},
     )
 
     assert response.status_code == 200
@@ -143,7 +146,7 @@ def test_valid_token_unlocks_all_six_existing_supplier_routes(
     anonymous_client: TestClient,
 ):
     user = register(anonymous_client)
-    headers = bearer(login(anonymous_client, user["email"]))
+    headers = bearer(login(anonymous_client, user["_email"]))
     created = anonymous_client.post(
         "/suppliers",
         headers=headers,
@@ -173,12 +176,12 @@ def test_valid_token_unlocks_all_six_existing_supplier_routes(
 def test_auth_me_returns_safe_user_and_linked_profile(anonymous_client: TestClient):
     user = register(anonymous_client)
     response = anonymous_client.get(
-        "/auth/me", headers=bearer(login(anonymous_client, user["email"]))
+        "/auth/me", headers=bearer(login(anonymous_client, user["_email"]))
     )
 
     assert response.status_code == 200
-    assert response.json()["profile"]["user_id"] == user["id"]
-    assert response.json()["email"] == user["email"]
+    assert "user_id" not in response.json()["profile"]
+    assert response.json()["email"] == user["_email"]
     assert "hashed_password" not in response.text
     assert "password" not in response.text
 
@@ -188,7 +191,7 @@ def test_user_cannot_access_or_change_another_users_credentials(
 ):
     owner = register(anonymous_client, "owner@nexova.example")
     other = register(anonymous_client, "other@nexova.example")
-    headers = bearer(login(anonymous_client, owner["email"]))
+    headers = bearer(login(anonymous_client, owner["_email"]))
 
     assert anonymous_client.get(f"/users/{other['id']}", headers=headers).status_code == 403
     assert anonymous_client.put(
@@ -199,7 +202,7 @@ def test_user_cannot_access_or_change_another_users_credentials(
 
 def test_user_can_update_own_credentials_but_not_role(anonymous_client: TestClient):
     user = register(anonymous_client)
-    headers = bearer(login(anonymous_client, user["email"]))
+    headers = bearer(login(anonymous_client, user["_email"]))
 
     forbidden = anonymous_client.put(
         f"/users/{user['id']}", headers=headers, json={"role": "admin"}
@@ -223,7 +226,7 @@ def test_admin_can_list_and_manage_other_users(anonymous_client: TestClient):
     admin = register(anonymous_client, "admin@nexova.example")
     other = register(anonymous_client, "other@nexova.example")
     database.users_table().update({"role": "admin"}, Query().id == admin["id"])
-    headers = bearer(login(anonymous_client, admin["email"]))
+    headers = bearer(login(anonymous_client, admin["_email"]))
 
     users = anonymous_client.get("/users", headers=headers)
     updated = anonymous_client.put(
@@ -238,7 +241,7 @@ def test_admin_can_list_and_manage_other_users(anonymous_client: TestClient):
 
 def test_profile_owner_can_read_and_replace_contact_data(anonymous_client: TestClient):
     user = register(anonymous_client)
-    headers = bearer(login(anonymous_client, user["email"]))
+    headers = bearer(login(anonymous_client, user["_email"]))
 
     before = anonymous_client.get("/profiles/me", headers=headers)
     after = anonymous_client.put(
@@ -250,12 +253,12 @@ def test_profile_owner_can_read_and_replace_contact_data(anonymous_client: TestC
     assert before.status_code == 200
     assert after.status_code == 200
     assert after.json()["name"] == "María S."
-    assert after.json()["user_id"] == user["id"]
+    assert "user_id" not in after.json()
 
 
 def test_delete_user_also_removes_linked_profile(anonymous_client: TestClient):
     user = register(anonymous_client)
-    headers = bearer(login(anonymous_client, user["email"]))
+    headers = bearer(login(anonymous_client, user["_email"]))
 
     response = anonymous_client.delete(f"/users/{user['id']}", headers=headers)
 

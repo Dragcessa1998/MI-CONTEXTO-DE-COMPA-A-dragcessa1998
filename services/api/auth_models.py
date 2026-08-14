@@ -85,9 +85,17 @@ class UserOut(BaseModel):
     created_at: datetime
 
 
-class ProfileOut(ProfileFields):
+class ProfileRecord(ProfileFields):
+    """Representación interna con la clave de relación de TinyDB."""
+
     id: int
     user_id: int
+
+
+class ProfileOut(ProfileFields):
+    """Contrato HTTP del perfil; el usuario ya está implícito en la ruta."""
+
+    id: int
 
 
 class ProfileUpdate(ProfileFields):
@@ -95,6 +103,16 @@ class ProfileUpdate(ProfileFields):
 
 
 class UserWithProfile(UserOut):
+    profile: ProfileOut
+
+
+class RegistrationResponse(BaseModel):
+    """Alta confirmada sin volver a exponer el identificador de inicio de sesión."""
+
+    id: int
+    is_active: bool
+    role: UserRole
+    created_at: datetime
     profile: ProfileOut
 
 

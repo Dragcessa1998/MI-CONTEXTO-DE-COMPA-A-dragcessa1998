@@ -29,6 +29,15 @@ VALID_CATEGORIES = [
 VALID_STATUSES = ["active", "suspended"]
 
 
+class HealthResponse(BaseModel):
+    status: Literal["ok"]
+    suppliers: int = Field(ge=0)
+
+
+class DeleteResponse(BaseModel):
+    detail: str
+
+
 class SupplierStatus(str, Enum):
     """Solo los dos estados que define el CONTEXT; cualquier otro valor → 422."""
 

@@ -15,7 +15,7 @@ def read_my_profile(current_user: UserRecord = Depends(get_current_user)) -> Pro
     profile = get_profile_by_user_id(current_user.id)
     if profile is None:
         raise HTTPException(status_code=404, detail="Perfil no encontrado")
-    return profile
+    return ProfileOut.model_validate(profile.model_dump(exclude={"user_id"}))
 
 
 @router.put("/me", response_model=ProfileOut)
@@ -31,4 +31,4 @@ def replace_my_profile(
     )
     if profile is None:
         raise HTTPException(status_code=404, detail="Perfil no encontrado")
-    return profile
+    return ProfileOut.model_validate(profile.model_dump(exclude={"user_id"}))

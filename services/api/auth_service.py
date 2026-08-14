@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from tinydb import Query
 
-from auth_models import ProfileOut, UserCreate, UserOut, UserRecord, UserUpdate
+from auth_models import ProfileRecord, UserCreate, UserOut, UserRecord, UserUpdate
 from database import profiles_table, users_table
 from security import hash_password
 
@@ -31,12 +31,12 @@ def get_user_by_email(email: str) -> UserRecord | None:
     return _user_record(record) if record is not None else None
 
 
-def get_profile_by_user_id(user_id: int) -> ProfileOut | None:
+def get_profile_by_user_id(user_id: int) -> ProfileRecord | None:
     record = profiles_table().get(Query().user_id == user_id)
-    return ProfileOut.model_validate(record) if record is not None else None
+    return ProfileRecord.model_validate(record) if record is not None else None
 
 
-def create_user(payload: UserCreate) -> tuple[UserOut, ProfileOut]:
+def create_user(payload: UserCreate) -> tuple[UserOut, ProfileRecord]:
     """Crea credenciales y perfil uno-a-uno; revierte el usuario si falla el perfil."""
     table = users_table()
     record = {
@@ -64,7 +64,7 @@ def create_user(payload: UserCreate) -> tuple[UserOut, ProfileOut]:
         table.remove(doc_ids=[user_doc_id])
         raise
 
-    return _user_out(record), ProfileOut.model_validate(profile_record)
+    return _user_out(record), ProfileRecord.model_validate(profile_record)
 
 
 def list_users() -> list[UserOut]:
@@ -89,7 +89,7 @@ def update_user(user_id: int, payload: UserUpdate) -> UserOut | None:
     return UserOut.model_validate(updated.model_dump())
 
 
-def update_profile(user_id: int, name: str, phone: str, address: str) -> ProfileOut | None:
+def update_profile(user_id: int, name: str, phone: str, address: str) -> ProfileRecord | None:
     query = Query()
     if profiles_table().get(query.user_id == user_id) is None:
         return None

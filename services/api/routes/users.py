@@ -2,7 +2,16 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from auth_models import UserCreate, UserOut, UserRecord, UserRole, UserUpdate, UserWithProfile
+from auth_models import (
+    RegistrationResponse,
+    ProfileOut,
+    UserCreate,
+    UserOut,
+    UserRecord,
+    UserRole,
+    UserUpdate,
+    UserWithProfile,
+)
 from auth_service import (
     create_user,
     delete_user,
@@ -27,12 +36,18 @@ def _require_owner_or_admin(target_user_id: int, current_user: UserRecord) -> No
         raise HTTPException(status_code=403, detail="No puedes acceder a otro usuario")
 
 
-@router.post("", status_code=201, response_model=UserWithProfile)
-def register_user(payload: UserCreate) -> UserWithProfile:
+@router.post("", status_code=201, response_model=RegistrationResponse)
+def register_user(payload: UserCreate) -> RegistrationResponse:
     if get_user_by_email(str(payload.email)) is not None:
         raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese email")
     user, profile = create_user(payload)
-    return UserWithProfile(**user.model_dump(), profile=profile)
+    return RegistrationResponse(
+        id=user.id,
+        is_active=user.is_active,
+        role=user.role,
+        created_at=user.created_at,
+        profile=ProfileOut.model_validate(profile.model_dump(exclude={"user_id"})),
+    )
 
 
 @router.get("", response_model=list[UserOut])
@@ -54,7 +69,10 @@ def read_user(
     if profile is None:
         raise HTTPException(status_code=500, detail="El usuario no tiene un perfil vinculado")
     safe_user = UserOut.model_validate(user.model_dump())
-    return UserWithProfile(**safe_user.model_dump(), profile=profile)
+    return UserWithProfile(
+        **safe_user.model_dump(),
+        profile=ProfileOut.model_validate(profile.model_dump(exclude={"user_id"})),
+    )
 
 
 @router.put("/{user_id}", response_model=UserOut)
@@ -76,7 +94,11 @@ def replace_user(
     return updated
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
 def remove_user(
     user_id: int, current_user: UserRecord = Depends(get_current_user)
 ) -> None:

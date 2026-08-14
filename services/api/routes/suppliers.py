@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from tinydb.table import Document
 
 from database import suppliers_table
-from models import RateUpdate, StatusUpdate, SupplierIn, SupplierOut
+from models import DeleteResponse, RateUpdate, StatusUpdate, SupplierIn, SupplierOut
 from security import get_current_user
 
 router = APIRouter(
@@ -91,9 +91,9 @@ def update_status(supplier_id: int, payload: StatusUpdate) -> SupplierOut:
     return _to_out(table.get(doc_id=supplier_id))
 
 
-@router.delete("/{supplier_id}")
-def delete_supplier(supplier_id: int) -> dict:
+@router.delete("/{supplier_id}", response_model=DeleteResponse)
+def delete_supplier(supplier_id: int) -> DeleteResponse:
     """Elimina un proveedor del directorio. 404 si el ID no existe."""
     _get_or_404(supplier_id)
     suppliers_table().remove(doc_ids=[supplier_id])
-    return {"detail": f"Proveedor {supplier_id} eliminado"}
+    return DeleteResponse(detail=f"Proveedor {supplier_id} eliminado")

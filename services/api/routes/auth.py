@@ -3,7 +3,14 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
-from auth_models import LoginRequest, TokenResponse, UserOut, UserRecord, UserWithProfile
+from auth_models import (
+    LoginRequest,
+    ProfileOut,
+    TokenResponse,
+    UserOut,
+    UserRecord,
+    UserWithProfile,
+)
 from auth_service import get_profile_by_user_id, get_user_by_email
 from security import (
     access_token_expire_minutes,
@@ -46,4 +53,7 @@ def read_auth_me(current_user: UserRecord = Depends(get_current_user)) -> UserWi
     if profile is None:
         raise unauthorized()
     safe_user = UserOut.model_validate(current_user.model_dump())
-    return UserWithProfile(**safe_user.model_dump(), profile=profile)
+    return UserWithProfile(
+        **safe_user.model_dump(),
+        profile=ProfileOut.model_validate(profile.model_dump(exclude={"user_id"})),
+    )

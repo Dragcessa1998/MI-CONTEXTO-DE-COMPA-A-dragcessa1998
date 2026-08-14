@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from database import suppliers_table
+from models import HealthResponse
 from routes.auth import router as auth_router
 from routes.incidents import router as incidents_router
 from routes.profiles import router as profiles_router
@@ -96,7 +97,7 @@ async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSO
     )
 
 
-@app.get("/health", tags=["health"])
-def health() -> dict:
+@app.get("/health", tags=["health"], response_model=HealthResponse)
+def health() -> HealthResponse:
     """Estado del servicio y tamaño del directorio."""
-    return {"status": "ok", "suppliers": len(suppliers_table())}
+    return HealthResponse(status="ok", suppliers=len(suppliers_table()))
