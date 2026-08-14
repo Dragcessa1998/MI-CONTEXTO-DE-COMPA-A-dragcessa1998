@@ -36,6 +36,7 @@
 - **Auditoría de rendimiento frontend (12/08/2026)** ✅ — Lighthouse 13.4.1 en builds de producción (website desktop/mobile y dashboard desktop), con informes JSON/HTML y capturas antes/después. Website mejoró Best Practices 96→100; backoffice mejoró Accessibility 96→100 y Best Practices 96→100, conservando Performance/SEO 100. Se añadieron iconos, se corrigió contraste y se extrajeron `FormField`/`FormErrorList` compartidos. Resultados y límites documentados en `AUDIT.md` y `REPORT.md`.
 - **Plan de telemetría (12/08/2026)** ✅ — catálogo de 18 eventos (5 obligatorios del contexto de inventario de Nexova + 13 oportunidades) con hipótesis, decisiones, propiedad/PII, urgencia stream/batch, muestreo, outbox, retención y exclusiones. Envelope draft-07 versionado con `requestId` y allowlist estricta para cada `event_type` en `docs/telemetry/event-schemas.json`.
 - **Captura frontend de telemetría (14/08/2026)** ✅ — collector FastAPI `POST /telemetry/events` con envelope Pydantic reutilizable y configuración por entorno; servicio único de frontend con cola, batch 10 s/20 eventos, `sendBeacon`, retry exponencial, identidad/session/request IDs automáticos y allowlists. Instrumentados navegación, errores globales/boundary, Web Vitals, latencia API y autenticación sin PII; los cinco eventos obligatorios de inventario tienen fronteras tipadas post-commit/rechazo. Verificado con **43 pruebas**, `next build` y una petición real desde Chrome al collector con **200 OK**. Evidencia y mapa en `docs/telemetry/frontend-capture.md`.
+- **Persistencia local de telemetría (14/08/2026)** 🟡 — migración Supabase/Postgres append-only con las 8 columnas e índices requeridos; adaptador REST server-only; mapeo de envelope; validación parcial de lotes; una única inserción bulk y respuesta `received/stored/rejected`. Verificado con **47 pruebas** y frontend sin cambios respecto a `322b4f8`. La aplicación de la migración y consulta de filas reales siguen pendientes porque la sesión de Supabase no está autenticada; evidencia exacta en `docs/telemetry/storage.md`.
 
 ## Próximos pasos previstos
 
@@ -45,6 +46,7 @@
 ## Tareas del usuario pendientes (no automatizables por el agente)
 
 - Verificar Codespaces y **entregar en la plataforma 4Geeks** la URL/PR de cada hito (cada rama por Hito sigue disponible para su entrega).
+- Iniciar sesión en Supabase, aplicar `infra/supabase/20260814_create_telemetry_events.sql`, configurar `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` fuera del repositorio y validar filas reales de telemetría. La sesión disponible actualmente redirige a inicio de sesión.
 - _Ya hecho por el agente:_ `main` unificado con el proyecto completo (Hitos 0-5 + integración + vista de procesos); no es necesario mergear los PRs salvo que la plataforma lo pida.
 
 Relacionado: [[projectbrief]] · [[techContext]]

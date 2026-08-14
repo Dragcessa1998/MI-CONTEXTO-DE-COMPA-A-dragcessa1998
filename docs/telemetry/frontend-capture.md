@@ -8,7 +8,8 @@ Schema: `1.0.0`
 
 - `POST /telemetry/events` accepts `{ "events": [...] }`, validates every item
   with the reusable Pydantic `TelemetryEvent` envelope, logs the count and
-  `event_type` values, and returns `{ "received": N }`.
+  `event_type` values, and returns the backward-compatible ingestion counts
+  `{ "received": N, "stored": N, "rejected": N }`.
 - The backend declares `TELEMETRY_ENDPOINT`; the browser reads only
   `NEXT_PUBLIC_TELEMETRY_ENDPOINT`.
 - `uis/backoffice/src/services/telemetry.ts` owns the in-memory queue, the
@@ -37,7 +38,8 @@ form components.
 
 ## Verification evidence
 
-- FastAPI: `43 passed` with collector success and invalid-envelope coverage.
+- FastAPI: `47 passed` with collector success, partial batch validation,
+  storage-outage handling and one-request Supabase bulk-insert coverage.
 - Backoffice: production `next build` compiled, type-checked, and generated all
   six routes successfully.
 - Browser integration: Chrome loaded `http://127.0.0.1:3131/incidents`; after
