@@ -1,0 +1,93 @@
+[
+  {
+    "id": "10000000-0000-4000-8000-000000000001",
+    "timestamp": "2026-08-03T09:00:00Z",
+    "event_type": "inbound_order_created",
+    "tags": {
+      "office": "valencia",
+      "programme_id": "leadership-foundations",
+      "currency": "EUR",
+      "quantity": 10,
+      "unit_cost": 50.0,
+      "order_id": "in-val-001",
+      "supplier_id": "supplier-val-01"
+    }
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000002",
+    "timestamp": "2026-08-04T10:00:00Z",
+    "event_type": "outbound_order_created",
+    "tags": {
+      "office": "valencia",
+      "programme_id": "leadership-foundations",
+      "currency": "EUR",
+      "quantity": 1,
+      "order_id": "out-val-001"
+    }
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000003",
+    "timestamp": "2026-08-05T11:00:00Z",
+    "event_type": "outbound_order_created",
+    "tags": {
+      "office": "valencia",
+      "programme_id": "leadership-foundations",
+      "currency": "EUR",
+      "quantity": 3,
+      "order_id": "out-val-002"
+    }
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000004",
+    "timestamp": "2026-08-06T12:00:00Z",
+    "event_type": "stock_threshold_triggered",
+    "tags": {
+      "office": "valencia",
+      "programme_id": "leadership-foundations",
+      "currency": "EUR",
+      "threshold": 5,
+      "available_quantity": 4
+    }
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000005",
+    "timestamp": "2026-08-07T13:00:00Z",
+    "event_type": "kit_cost_variance_detected",
+    "tags": {
+      "office": "valencia",
+      "programme_id": "leadership-foundations",
+      "currency": "EUR",
+      "supplier_id": "supplier-val-01",
+      "previous_unit_cost": 42.0,
+      "current_unit_cost": 50.0,
+      "variance_percent": 19.05,
+      "threshold_percent": 15.0
+    }
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000006",
+    "timestamp": "2026-08-03T15:00:00Z",
+    "event_type": "inbound_order_created",
+    "tags": {
+      "office": "miami",
+      "programme_id": "b2b-sales",
+      "currency": "USD",
+      "quantity": 5,
+      "unit_cost": 60.0,
+      "order_id": "in-mia-001",
+      "supplier_id": "supplier-mia-01"
+    }
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000007",
+    "timestamp": "2026-08-08T16:00:00Z",
+    "event_type": "outbound_order_created",
+    "tags": {
+      "office": "miami",
+      "programme_id": "b2b-sales",
+      "currency": "USD",
+      "quantity": 2,
+      "order_id": "out-mia-001"
+    }
+  }
+]

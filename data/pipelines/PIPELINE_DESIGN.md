@@ -1,6 +1,6 @@
 # Weekly Office and Programme Performance Pipeline
 
-Status: Part 1 design complete; implementation pending  
+Status: Part 1 designed; Part 2 implemented and validated locally
 Company: Nexova Solutions  
 Business owners: Laura Mendoza (CEO) and Elena Vargas (L&D Manager)  
 Cadence: weekly, ready every Monday morning  
@@ -27,9 +27,11 @@ allowlisted event properties are retained in `tags`.
 
 The current eight-column mapping does not persist the envelope's `requestId`.
 That does not block the four KPI calculations, but it is a known request-level
-lineage gap. Part 2 should add `request_id` as envelope metadata inside the
-existing JSONB `tags` value (not as a new event property or table column).
-Legacy rows legitimately keep `request_id = null` in the audit manifest.
+lineage gap. The pipeline therefore records `event_id` as its durable v1 link
+and accepts a nullable `request_id` in the manifest. A future telemetry-storage
+hardening may retain that existing envelope field as metadata inside JSONB
+`tags` (not as a new event property or table column); changing the technical
+telemetry system is outside Part 2.
 
 The mandatory source events required by this pipeline already exist:
 
@@ -134,6 +136,13 @@ timezone-aware UTC values before the ISO-week key is derived.
 - Source freshness: telemetry is appended continuously; the six-hour grace
   period absorbs routine client buffering before the Monday report.
 
+Local execution after synchronizing the API environment:
+
+```bash
+services/api/.venv/bin/python data/pipelines/pipeline.py
+services/api/.venv/bin/python data/pipelines/pipeline.py --week-start 2026-08-03 --trigger-source backfill
+```
+
 ## Data Flow
 
 ```mermaid
@@ -180,10 +189,12 @@ target week and upserted, so source corrections cannot accumulate duplicates.
 Idempotency is enforced at three layers:
 
 1. **Ingestion identity:** the producer-generated `eventId` is the canonical
-   idempotency key and becomes `telemetry_events.id`. Part 2 must harden the
-   current bulk insert to use `ON CONFLICT (id) DO NOTHING` (the PostgREST
-   equivalent is `on_conflict=id` plus duplicate-ignore resolution). A repeated
-   transmission then returns success because the event is already durable.
+   idempotency key and becomes `telemetry_events.id`. A future ingestion
+   hardening can use `ON CONFLICT (id) DO NOTHING` (the PostgREST equivalent is
+   `on_conflict=id` plus duplicate-ignore resolution) so a repeated transport
+   receives success when the event is already durable. Part 2 leaves the
+   existing technical telemetry system unchanged and deduplicates defensively
+   during extraction.
 2. **Transformation identity:** the validation task keeps one canonical row per
    `id` before aggregation. Its deterministic input ordering makes equal input
    windows produce equal output frames and checksums.
@@ -371,9 +382,9 @@ The load is blocked when any of these conditions is true:
 Rejected records are counted and linked to the run by event ID and safe reason
 code. Their full payload is never exposed through the reporting API.
 
-## Acceptance and Test Plan for Part 2
+## Part 2 Verification
 
-The implementation phase must prove:
+The implementation and its acceptance suite prove:
 
 1. a fixture containing all four event types produces the exact four KPI values;
 2. Valencia/EUR and Miami/USD remain separate and are never summed;
@@ -389,10 +400,18 @@ The implementation phase must prove:
     transformation logic;
 11. `services/telemetry/analysis.py` and `GET /telemetry/report` remain unchanged.
 
+Local evidence on 14/08/2026: **57 backend tests passed**, including six new
+pipeline/reporting tests; the exact CLI command completed with seven source
+events, two output rows and a Prefect `Completed` state. The second identical
+run produced no duplicate business rows, the optional snapshot was forced to
+fail without failing its flow, and the authenticated endpoint tests covered
+status, manual trigger, KPI response, Monday validation and active-run conflict.
+The Next.js production build still produces the existing seven routes.
+
 ## Scope Boundaries
 
-Version 1 intentionally excludes currency conversion, forecasting, dashboards,
-additional business KPIs and new event types. It produces only the weekly
-office/programme dataset required by Laura and Elena. Part 2 will implement the
-flow and database objects; Part 3 may split stages into subflows and add the
+Version 1 intentionally excludes currency conversion, forecasting, additional
+business KPIs and new event types. It produces only the weekly office/programme
+dataset required by Laura and Elena. Part 2 implements the flow, database
+objects and HTTP boundary; Part 3 may split stages into subflows and add the
 business dashboard without changing this contract.

@@ -25,6 +25,13 @@ def isolated_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(database, "DB_PATH", tmp_path / "suppliers.db.json")
     monkeypatch.setenv("JWT_SECRET", "test-secret-that-is-longer-than-thirty-two-characters")
     monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    monkeypatch.setenv("PIPELINE_BACKEND", "local")
+    monkeypatch.setenv(
+        "PIPELINE_LOCAL_SOURCE",
+        str(REPO_ROOT / "data" / "raw" / "telemetry_events.sample.json"),
+    )
+    monkeypatch.setenv("PIPELINE_STATE_DIR", str(tmp_path / "pipeline-state"))
+    monkeypatch.setenv("PREFECT_HOME", str(tmp_path / "prefect-home"))
 
     yield
 
