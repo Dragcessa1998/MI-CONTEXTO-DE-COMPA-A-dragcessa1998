@@ -14,12 +14,23 @@ from tinydb.table import Document
 from database import suppliers_table
 from models import DeleteResponse, RateUpdate, StatusUpdate, SupplierIn, SupplierOut
 from security import get_current_user
+from ttl_cache import TTLCache
 
 router = APIRouter(
     prefix="/suppliers",
     tags=["suppliers"],
     dependencies=[Depends(get_current_user)],
 )
+
+# The directory is company-wide data: authorization gates access, but the
+# response does not vary per user/session. Keys contain filters only.
+supplier_list_cache: TTLCache[
+    tuple[str | None, str | None], tuple[SupplierOut, ...]
+] = TTLCache(ttl_seconds=30)
+
+
+def clear_supplier_list_cache() -> None:
+    supplier_list_cache.clear()
 
 
 def _now_iso() -> str:
@@ -45,6 +56,7 @@ def create_supplier(payload: SupplierIn) -> SupplierOut:
     record = payload.model_dump()
     record["rate_updated_at"] = _now_iso()  # generado por el sistema, no por el cliente
     doc_id = suppliers_table().insert(record)
+    clear_supplier_list_cache()
     return SupplierOut(id=doc_id, **record)
 
 
@@ -55,12 +67,15 @@ def list_suppliers(
 ) -> list[SupplierOut]:
     """Lista los proveedores. Sin parámetros devuelve todos; `country` y
     `category` filtran (y se pueden combinar)."""
-    docs = suppliers_table().all()
-    if country is not None:
-        docs = [d for d in docs if d.get("country") == country]
-    if category is not None:
-        docs = [d for d in docs if category in d.get("categories", [])]
-    return [_to_out(d) for d in docs]
+    def load() -> tuple[SupplierOut, ...]:
+        docs = suppliers_table().all()
+        if country is not None:
+            docs = [d for d in docs if d.get("country") == country]
+        if category is not None:
+            docs = [d for d in docs if category in d.get("categories", [])]
+        return tuple(_to_out(d) for d in docs)
+
+    return list(supplier_list_cache.get_or_set((country, category), load))
 
 
 @router.get("/{supplier_id}", response_model=SupplierOut)
@@ -79,6 +94,7 @@ def update_rate(supplier_id: int, payload: RateUpdate) -> SupplierOut:
         {"monthly_rate": payload.monthly_rate, "rate_updated_at": _now_iso()},
         doc_ids=[supplier_id],
     )
+    clear_supplier_list_cache()
     return _to_out(table.get(doc_id=supplier_id))
 
 
@@ -88,6 +104,7 @@ def update_status(supplier_id: int, payload: StatusUpdate) -> SupplierOut:
     _get_or_404(supplier_id)
     table = suppliers_table()
     table.update({"status": payload.status.value}, doc_ids=[supplier_id])
+    clear_supplier_list_cache()
     return _to_out(table.get(doc_id=supplier_id))
 
 
@@ -96,4 +113,5 @@ def delete_supplier(supplier_id: int) -> DeleteResponse:
     """Elimina un proveedor del directorio. 404 si el ID no existe."""
     _get_or_404(supplier_id)
     suppliers_table().remove(doc_ids=[supplier_id])
+    clear_supplier_list_cache()
     return DeleteResponse(detail=f"Proveedor {supplier_id} eliminado")

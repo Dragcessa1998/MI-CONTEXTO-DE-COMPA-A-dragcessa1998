@@ -116,6 +116,32 @@ def test_list_all_and_filter_by_country_category_or_both(client: TestClient):
     assert [supplier["name"] for supplier in filtered] == ["Greenhouse"]
 
 
+def test_supplier_list_uses_ttl_cache_and_writes_invalidate_it(
+    client: TestClient, monkeypatch
+):
+    original_table = supplier_routes.suppliers_table
+    table_reads = 0
+
+    def counting_table():
+        nonlocal table_reads
+        table_reads += 1
+        return original_table()
+
+    monkeypatch.setattr(supplier_routes, "suppliers_table", counting_table)
+    client.post("/suppliers", json=supplier_payload())
+    reads_after_write = table_reads
+
+    assert len(client.get("/suppliers").json()) == 1
+    reads_after_first_get = table_reads
+    assert reads_after_first_get > reads_after_write
+    assert len(client.get("/suppliers").json()) == 1
+    assert table_reads == reads_after_first_get
+
+    client.post("/suppliers", json=supplier_payload(name="People Analytics Lab"))
+    assert len(client.get("/suppliers").json()) == 2
+    assert table_reads > reads_after_first_get
+
+
 def test_get_supplier_and_missing_404(client: TestClient):
     created = client.post("/suppliers", json=supplier_payload()).json()
 

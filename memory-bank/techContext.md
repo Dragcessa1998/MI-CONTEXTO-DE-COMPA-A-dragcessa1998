@@ -33,6 +33,7 @@
 - **Web pública** → `uis/website`; **lógica interna/dashboards** → `uis/backoffice`, con **layouts separados**.
 - **Config por entorno:** variables vía `.env.local` (NO se commitea); cada app incluye `.env.example`.
 - **Desarrollo reproducible:** Docker Compose orquesta un contenedor UI (website + backoffice) y FastAPI; Next actúa como proxy same-origin hacia `http://backend:8000` en la red `nexova-dev`.
+- **Caché de respuestas:** FastAPI usa una caché TTL en proceso y thread-safe solo para datos compartidos de empresa (`GET /suppliers`, 30 s; `GET /api/incidents/summary`, 15 s), con invalidación síncrona en escrituras relacionadas. Si se escala a varios workers, se sustituirá por Redis.
 - **CONTEXT por hito:** `CONTEXT.md` se reemplaza con el contexto del hito actual (`content/contexts/<NN>/CONTEXT-nexova.es.md` del syllabus).
 
 ## Estado del stack por hito

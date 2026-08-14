@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   api,
@@ -137,19 +137,22 @@ function DashboardContent({ data }: { data: DashboardData }) {
   const best = ranking?.ranking[0];
   const statuses = Object.keys(summary.byStatus);
 
-  // Componemos las filas del ranking enriqueciéndolas con email y salario del
-  // listado de candidatos (el endpoint de ranking devuelve solo lo esencial).
-  const rankingRows: RankingRow[] = (ranking?.ranking ?? []).map((row) => {
-    const candidate = candidates.find((item) => item.id === row.candidateId);
-    return {
-      id: row.candidateId,
-      fullName: row.fullName,
-      email: candidate?.email,
-      seniority: row.seniority,
-      expectedSalary: candidate?.expectedSalary,
-      score: row.score,
-    };
-  });
+  // This is an indexed join between two datasets, not a display-only scalar.
+  // Memoization avoids rebuilding the index and rows on unrelated UI renders.
+  const rankingRows: RankingRow[] = useMemo(() => {
+    const candidatesById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+    return (ranking?.ranking ?? []).map((row) => {
+      const candidate = candidatesById.get(row.candidateId);
+      return {
+        id: row.candidateId,
+        fullName: row.fullName,
+        email: candidate?.email,
+        seniority: row.seniority,
+        expectedSalary: candidate?.expectedSalary,
+        score: row.score,
+      };
+    });
+  }, [candidates, ranking]);
 
   return (
     <>

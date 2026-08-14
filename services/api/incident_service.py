@@ -13,6 +13,16 @@ from tinydb.table import Document
 
 from database import incidents_table
 from incident_models import IncidentCreate, IncidentOut, IncidentSummary
+from ttl_cache import TTLCache
+
+
+# The aggregate contains operational totals only and is identical for every
+# authorized user, so a single shared key cannot leak session-specific data.
+incident_summary_cache: TTLCache[str, IncidentSummary] = TTLCache(ttl_seconds=15)
+
+
+def clear_incident_summary_cache() -> None:
+    incident_summary_cache.clear()
 
 
 def _now_iso() -> str:
@@ -30,6 +40,7 @@ def create_incident(payload: IncidentCreate) -> IncidentOut:
     doc_id = incidents_table().insert(record)
     record["id"] = doc_id
     incidents_table().update({"id": doc_id}, doc_ids=[doc_id])
+    clear_incident_summary_cache()
     return _to_out(record)
 
 
@@ -51,20 +62,24 @@ def set_incident_status(incident_id: int, status: str) -> IncidentOut | None:
     if table.get(doc_id=incident_id) is None:
         return None
     table.update({"status": status, "updated_at": _now_iso()}, doc_ids=[incident_id])
+    clear_incident_summary_cache()
     return _to_out(table.get(doc_id=incident_id))
 
 
 def incident_summary() -> IncidentSummary:
-    records = incidents_table().all()
+    def load() -> IncidentSummary:
+        records = incidents_table().all()
 
-    def complete_counts(field: str, allowed: tuple[str, ...]) -> dict[str, int]:
-        counts = Counter(str(record.get(field)) for record in records)
-        return {value: counts[value] for value in allowed}
+        def complete_counts(field: str, allowed: tuple[str, ...]) -> dict[str, int]:
+            counts = Counter(str(record.get(field)) for record in records)
+            return {value: counts[value] for value in allowed}
 
-    return IncidentSummary(
-        total=len(records),
-        by_status=complete_counts("status", INCIDENT_STATUSES),
-        by_category=complete_counts("category", INCIDENT_CATEGORIES),
-        by_origin=complete_counts("origin", INCIDENT_ORIGINS),
-        by_branch=complete_counts("branch", INCIDENT_BRANCHES),
-    )
+        return IncidentSummary(
+            total=len(records),
+            by_status=complete_counts("status", INCIDENT_STATUSES),
+            by_category=complete_counts("category", INCIDENT_CATEGORIES),
+            by_origin=complete_counts("origin", INCIDENT_ORIGINS),
+            by_branch=complete_counts("branch", INCIDENT_BRANCHES),
+        )
+
+    return incident_summary_cache.get_or_set("company-summary", load)

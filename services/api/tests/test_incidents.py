@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 import routes.incidents as incident_routes
 import database
+import incident_service
 from main import app
 from scripts.seed_incidents import DEFAULT_CSV, main as seed_main, print_report, seed
 
@@ -30,6 +31,34 @@ def test_empty_database_returns_empty_list_and_zeroed_summary(client: TestClient
     assert summary["total"] == 0
     assert set(summary["by_status"]) == {"open", "in_progress", "resolved", "discarded"}
     assert all(count == 0 for group in summary.values() if isinstance(group, dict) for count in group.values())
+
+
+def test_incident_summary_uses_ttl_cache_and_status_writes_invalidate_it(
+    client: TestClient, monkeypatch
+):
+    created = client.post("/api/incidents", json=incident_payload()).json()
+    original_table = incident_service.incidents_table
+    table_reads = 0
+
+    def counting_table():
+        nonlocal table_reads
+        table_reads += 1
+        return original_table()
+
+    monkeypatch.setattr(incident_service, "incidents_table", counting_table)
+    assert client.get("/api/incidents/summary").json()["by_status"]["open"] == 1
+    reads_after_first_get = table_reads
+    assert client.get("/api/incidents/summary").json()["by_status"]["open"] == 1
+    assert table_reads == reads_after_first_get
+
+    updated = client.patch(
+        f"/api/incidents/{created['id']}/status", json={"status": "in_progress"}
+    )
+    assert updated.status_code == 200
+    summary = client.get("/api/incidents/summary").json()
+    assert summary["by_status"]["open"] == 0
+    assert summary["by_status"]["in_progress"] == 1
+    assert table_reads > reads_after_first_get
 
 
 def test_create_generates_id_and_timezone_aware_timestamps(client: TestClient):

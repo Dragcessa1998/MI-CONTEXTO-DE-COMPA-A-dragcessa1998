@@ -13,7 +13,9 @@ sys.path.insert(0, str(API_DIR))
 sys.path.insert(0, str(REPO_ROOT))
 
 import database  # noqa: E402
+from incident_service import clear_incident_summary_cache  # noqa: E402
 from main import app  # noqa: E402
+from routes.suppliers import clear_supplier_list_cache  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -25,12 +27,16 @@ def isolated_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(database, "DB_PATH", tmp_path / "suppliers.db.json")
     monkeypatch.setenv("JWT_SECRET", "test-secret-that-is-longer-than-thirty-two-characters")
     monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    clear_supplier_list_cache()
+    clear_incident_summary_cache()
 
     yield
 
     if database._db is not None:
         database._db.close()
     database._db = None
+    clear_supplier_list_cache()
+    clear_incident_summary_cache()
 
 
 @pytest.fixture
