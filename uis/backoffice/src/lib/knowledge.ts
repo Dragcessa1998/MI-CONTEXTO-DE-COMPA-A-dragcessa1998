@@ -2,13 +2,13 @@ const API_URL = process.env.NEXT_PUBLIC_PLATFORM_API_URL ?? "/platform-api";
 
 export class KnowledgeApiError extends Error {}
 
-export async function askKnowledgeBase(question: string): Promise<string> {
+export async function askKnowledgeBase(question: string, token: string): Promise<string> {
   let response: Response;
   try {
     response = await fetch(`${API_URL}/knowledge/query`, {
       method: "POST",
       cache: "no-store",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ question }),
     });
   } catch {
@@ -19,7 +19,9 @@ export async function askKnowledgeBase(question: string): Promise<string> {
 
   if (!response.ok) {
     throw new KnowledgeApiError(
-      response.status === 422
+      response.status === 400
+        ? "La consulta fue bloqueada por las políticas de seguridad del agente."
+        : response.status === 422
         ? "Escribe una pregunta concreta antes de enviarla."
         : "El asistente no está disponible temporalmente. Inténtalo de nuevo.",
     );

@@ -15,6 +15,8 @@ sys.path.insert(0, str(REPO_ROOT))
 import database  # noqa: E402
 from main import app  # noqa: E402
 from routes.rfp_events import rfp_event_broker  # noqa: E402
+from agent.guardrails import guardrail_events  # noqa: E402
+from rate_limit import model_rate_limiter  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -39,6 +41,15 @@ def isolated_rfp_event_broker():
     rfp_event_broker.reset()
     yield
     rfp_event_broker.reset()
+
+
+@pytest.fixture(autouse=True)
+def isolated_ai_security_state():
+    guardrail_events.clear()
+    model_rate_limiter.reset()
+    yield
+    guardrail_events.clear()
+    model_rate_limiter.reset()
 
 
 @pytest.fixture

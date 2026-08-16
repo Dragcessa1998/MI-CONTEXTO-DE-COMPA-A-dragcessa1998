@@ -6,7 +6,7 @@ import routes.knowledge as knowledge_routes
 
 
 def test_knowledge_endpoint_returns_only_generated_answer(
-    anonymous_client: TestClient, monkeypatch,
+    client: TestClient, monkeypatch,
 ) -> None:
     monkeypatch.setattr(
         knowledge_routes,
@@ -14,7 +14,7 @@ def test_knowledge_endpoint_returns_only_generated_answer(
         lambda question: f"Respuesta comercial verificada para: {question}",
     )
 
-    response = anonymous_client.post(
+    response = client.post(
         "/knowledge/query",
         json={"question": "¿Qué incluye headhunting?"},
     )
@@ -26,21 +26,21 @@ def test_knowledge_endpoint_returns_only_generated_answer(
     assert "chunks" not in response.text and "score" not in response.text
 
 
-def test_knowledge_endpoint_validates_input(anonymous_client: TestClient) -> None:
-    assert anonymous_client.post("/knowledge/query", json={"question": ""}).status_code == 422
-    assert anonymous_client.post(
+def test_knowledge_endpoint_validates_input(client: TestClient) -> None:
+    assert client.post("/knowledge/query", json={"question": ""}).status_code == 422
+    assert client.post(
         "/knowledge/query", json={"question": "válida", "internal": True}
     ).status_code == 422
 
 
 def test_knowledge_endpoint_hides_provider_errors(
-    anonymous_client: TestClient, monkeypatch,
+    client: TestClient, monkeypatch,
 ) -> None:
     def fail(_question: str) -> str:
         raise RuntimeError("sensitive-provider-detail-and-internal-vector-path")
 
     monkeypatch.setattr(knowledge_routes, "query", fail)
-    response = anonymous_client.post(
+    response = client.post(
         "/knowledge/query",
         json={"question": "¿Qué precio tiene?"},
     )

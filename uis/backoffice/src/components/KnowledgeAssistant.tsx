@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { askKnowledgeBase } from "@/lib/knowledge";
+import { SESSION_TOKEN_KEY, incidentsApi } from "@/lib/incidents";
 
 
 const EXAMPLES = [
@@ -11,10 +12,20 @@ const EXAMPLES = [
 ];
 
 export default function KnowledgeAssistant() {
+  const [ready, setReady] = useState(false);
+  const [token, setToken] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setToken(window.localStorage.getItem(SESSION_TOKEN_KEY) ?? "");
+    setReady(true);
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,13 +38,38 @@ export default function KnowledgeAssistant() {
     setError("");
     setAnswer("");
     try {
-      setAnswer(await askKnowledgeBase(normalized));
+      setAnswer(await askKnowledgeBase(normalized, token));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "No pudimos completar la consulta.");
     } finally {
       setLoading(false);
     }
   }
+
+  async function login(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoginError("");
+    try {
+      const result = await incidentsApi.login(email, password);
+      window.localStorage.setItem(SESSION_TOKEN_KEY, result.access_token);
+      setToken(result.access_token);
+      setPassword("");
+    } catch {
+      setLoginError("No pudimos iniciar sesión. Revisa tus credenciales.");
+    }
+  }
+
+  if (!ready) return <div className="h-48 animate-pulse rounded-2xl bg-slate-200/70" />;
+  if (!token) return <section className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <p className="text-xs font-bold uppercase tracking-widest text-brand-600">Canal protegido</p>
+    <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Conocimiento comercial</h2>
+    <form onSubmit={(event) => void login(event)} className="mt-6 space-y-4">
+      <label className="block text-sm font-medium text-slate-700">Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} className={inputClass} /></label>
+      <label className="block text-sm font-medium text-slate-700">Contraseña<input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} className={inputClass} /></label>
+      {loginError && <p role="alert" className="text-sm text-rose-700">{loginError}</p>}
+      <button className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white">Iniciar sesión</button>
+    </form>
+  </section>;
 
   return (
     <section className="mx-auto max-w-4xl space-y-6">
@@ -102,3 +138,5 @@ export default function KnowledgeAssistant() {
     </section>
   );
 }
+
+const inputClass = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";

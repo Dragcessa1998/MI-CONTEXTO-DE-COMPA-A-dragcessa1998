@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+from agent.guardrails import validate_user_prompt
 from agent.streaming import stream_support_agent
 
 
@@ -85,9 +86,7 @@ class ChatHub:
             queue.put_nowait(event)
 
     async def user_message(self, session: ChatSession, text: str) -> None:
-        normalized = text.strip()
-        if not normalized:
-            raise ValueError("El mensaje no puede estar vacío")
+        normalized = validate_user_prompt(text, source="agent.websocket")
         async with session.lock:
             if session.generation_task is not None and not session.generation_task.done():
                 raise RuntimeError("Hay una generación activa; interrúmpela antes de enviar otro mensaje")

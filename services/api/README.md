@@ -135,6 +135,24 @@ deltas se publican como `token_chunk` y `interrupt_requested` cancela el stream
 activo antes de crear un turno nuevo. El contrato y las pruebas están en
 `docs/realtime/`.
 
+## Controles de seguridad de IA
+
+`/agent/query`, `/knowledge/query` y el resumen de guardrails requieren JWT. Las
+rutas que invocan modelos comparten un límite temporal configurable con
+`MODEL_RATE_LIMIT_REQUESTS` y `MODEL_RATE_LIMIT_WINDOW_SECONDS`; una cuota
+agotada responde `429` y `Retry-After`.
+
+`agent/guardrails.py` valida y normaliza toda entrada directa. El pipeline RAG
+escapa y delimita cada fragmento recuperado como fuente externa no confiable,
+neutralizando instrucciones incrustadas antes de construir el prompt. El
+informe, las brechas abiertas y los comandos de evidencia están en
+`docs/security/NIST_AI_SECURITY_REPORT.md`.
+
+```bash
+uv run --project services/api --group dev pytest -q services/api/tests/test_ai_security.py
+uv run python scripts/security/check_tracked_secrets.py
+```
+
 ### Validaciones (Pydantic → 422 antes de tocar TinyDB)
 
 - `status` solo `active` / `suspended` · `monthly_rate` > 0 · `categories` ⊆ lista válida (mín. 1).

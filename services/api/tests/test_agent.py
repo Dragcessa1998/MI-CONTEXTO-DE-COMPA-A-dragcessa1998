@@ -4,7 +4,7 @@ import routes.agent as agent_routes
 
 
 def test_agent_endpoint_is_thin_and_returns_run_id(
-    anonymous_client: TestClient, monkeypatch,
+    client: TestClient, monkeypatch,
 ) -> None:
     monkeypatch.setattr(
         agent_routes,
@@ -15,7 +15,7 @@ def test_agent_endpoint_is_thin_and_returns_run_id(
             "trace": [],
         },
     )
-    response = anonymous_client.post(
+    response = client.post(
         "/agent/query",
         json={"question": "¿Qué incluye headhunting?"},
     )
@@ -27,14 +27,14 @@ def test_agent_endpoint_is_thin_and_returns_run_id(
 
 
 def test_agent_endpoint_hides_internal_errors(
-    anonymous_client: TestClient, monkeypatch,
+    client: TestClient, monkeypatch,
 ) -> None:
     monkeypatch.setattr(
         agent_routes,
         "run_agent",
         lambda _question: (_ for _ in ()).throw(RuntimeError("secret-provider-path")),
     )
-    response = anonymous_client.post("/agent/query", json={"question": "precio"})
+    response = client.post("/agent/query", json={"question": "precio"})
     assert response.status_code == 503
     assert response.json() == {
         "detail": "El agente de soporte no está disponible temporalmente."
@@ -43,7 +43,7 @@ def test_agent_endpoint_hides_internal_errors(
 
 
 def test_trace_endpoint_returns_consultable_events(
-    anonymous_client: TestClient, monkeypatch,
+    client: TestClient, monkeypatch,
 ) -> None:
     trace = {
         "run_id": "trace-1",
@@ -52,5 +52,5 @@ def test_trace_endpoint_returns_consultable_events(
         "events": [{"sequence": 1, "node": "receive_question", "output": {}}],
     }
     monkeypatch.setattr(agent_routes.trace_store, "get", lambda run_id: trace if run_id == "trace-1" else None)
-    assert anonymous_client.get("/agent/traces/trace-1").json() == trace
-    assert anonymous_client.get("/agent/traces/missing").status_code == 404
+    assert client.get("/agent/traces/trace-1").json() == trace
+    assert client.get("/agent/traces/missing").status_code == 404
