@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 
-from data.pipelines.rfp_intake import run_proposal_generation, run_rfp_intake
+from data.pipelines.rfp_intake import (
+    ApprovalWorkflowRuntime,
+    generate_final_document,
+    run_proposal_generation,
+    run_rfp_intake,
+)
+from data.pipelines.rfp_intake.approval_models import ApprovalDecisionRequest
+from data.pipelines.rfp_intake.models import DepartmentId
 from rfp_repository import RfpRepository, get_rfp_repository
 from security import get_current_user
 
@@ -17,6 +25,11 @@ from security import get_current_user
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RAW_DIR = Path(os.getenv("RFP_RAW_DIR", str(REPO_ROOT / "data" / "raw" / "rfps"))).resolve()
 MAX_PDF_BYTES = 10 * 1024 * 1024
+CHECKPOINT_PATH = Path(os.getenv(
+    "RFP_CHECKPOINT_DB",
+    str(REPO_ROOT / "data" / "checkpoints" / "rfp-approvals.sqlite3"),
+)).resolve()
+FINAL_DIR = Path(os.getenv("RFP_FINAL_DIR", str(REPO_ROOT / "data" / "final" / "rfps"))).resolve()
 
 router = APIRouter(
     prefix="/api/rfps",
@@ -27,6 +40,15 @@ router = APIRouter(
 
 def repository_dependency() -> RfpRepository:
     return get_rfp_repository()
+
+
+@lru_cache(maxsize=1)
+def get_approval_runtime() -> ApprovalWorkflowRuntime:
+    return ApprovalWorkflowRuntime(CHECKPOINT_PATH)
+
+
+def approval_runtime_dependency() -> ApprovalWorkflowRuntime:
+    return get_approval_runtime()
 
 
 def _run_background(ticket_id: str, raw_pdf_path: str, repository: RfpRepository) -> None:
@@ -102,6 +124,99 @@ def draft_rfp_response(
         "status": "drafting",
         "status_url": f"/api/rfps/{ticket_id}",
     }
+
+
+@router.post("/{ticket_id}/approvals/start")
+def start_rfp_approvals(
+    ticket_id: str,
+    repository: Annotated[RfpRepository, Depends(repository_dependency)],
+    runtime: Annotated[ApprovalWorkflowRuntime, Depends(approval_runtime_dependency)],
+) -> dict[str, Any]:
+    if repository.get_ticket(ticket_id) is None:
+        raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
+    try:
+        ticket = repository.start_approvals(ticket_id)
+        branches = [runtime.start_branch(ticket, section) for section in ticket["sections"]]
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {
+        "ticket_id": ticket_id,
+        "status": "waiting_for_approval",
+        "branches": [item.model_dump(mode="json") for item in branches],
+    }
+
+
+@router.post("/{ticket_id}/approvals/{department_id}/resume")
+def resume_rfp_approval(
+    ticket_id: str,
+    department_id: DepartmentId,
+    decision: ApprovalDecisionRequest,
+    repository: Annotated[RfpRepository, Depends(repository_dependency)],
+    runtime: Annotated[ApprovalWorkflowRuntime, Depends(approval_runtime_dependency)],
+) -> dict[str, Any]:
+    ticket = repository.get_ticket(ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
+    if not any(section["department_id"] == department_id for section in ticket["sections"]):
+        raise HTTPException(status_code=404, detail="Departamento no activo en este ticket.")
+    try:
+        branch = runtime.resume_branch(ticket_id, department_id, decision, ticket=ticket)
+        repository.save_approval_branch(branch)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    refreshed = repository.get_ticket(ticket_id)
+    if refreshed is None:
+        raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
+    document = None
+    if refreshed["sections"] and all(
+        section.get("approval_status") == "approved" for section in refreshed["sections"]
+    ):
+        final_document = generate_final_document(refreshed, FINAL_DIR)
+        repository.save_final_document(final_document)
+        document = final_document.model_dump(mode="json")
+        ticket_status = "done"
+    else:
+        ticket_status = "waiting_for_approval"
+    return {
+        "ticket_id": ticket_id,
+        "status": ticket_status,
+        "branch": branch.model_dump(mode="json"),
+        "final_document": document,
+    }
+
+
+@router.get("/{ticket_id}/approvals/trace")
+def get_rfp_approval_trace(
+    ticket_id: str,
+    repository: Annotated[RfpRepository, Depends(repository_dependency)],
+    runtime: Annotated[ApprovalWorkflowRuntime, Depends(approval_runtime_dependency)],
+) -> dict[str, Any]:
+    ticket = repository.get_ticket(ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
+    branches: list[dict[str, Any]] = []
+    for section in ticket["sections"]:
+        try:
+            branches.append(runtime.branch_state(ticket_id, section["department_id"]).model_dump(mode="json"))
+        except KeyError:
+            continue
+    return {"ticket_id": ticket_id, "branches": branches}
+
+
+@router.get("/{ticket_id}/final")
+def get_rfp_final_document(
+    ticket_id: str,
+    repository: Annotated[RfpRepository, Depends(repository_dependency)],
+) -> dict[str, Any]:
+    if repository.get_ticket(ticket_id) is None:
+        raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
+    document = repository.get_final_document(ticket_id)
+    if document is None:
+        raise HTTPException(status_code=409, detail="El documento final todavía no está disponible.")
+    return document
 
 
 @router.get("/{ticket_id}")

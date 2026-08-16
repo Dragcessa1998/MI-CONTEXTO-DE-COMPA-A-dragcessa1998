@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { SESSION_TOKEN_KEY, incidentsApi } from "@/lib/incidents";
-import { RfpApiError, rfpsApi, type RfpStatus, type RfpTicket } from "@/lib/rfps";
+import { RfpApiError, rfpsApi, type ApprovalDecision, type DepartmentSection, type FinalDocument, type RfpStatus, type RfpTicket } from "@/lib/rfps";
 
 const STATUS_LABELS: Record<RfpStatus, string> = {
   analyzing: "Analizando",
@@ -12,6 +12,8 @@ const STATUS_LABELS: Record<RfpStatus, string> = {
   drafting: "Redactando",
   under_evaluation: "Evaluación completada",
   needs_human_review: "Revisión humana necesaria",
+  waiting_for_approval: "Esperando aprobaciones",
+  done: "Propuesta finalizada",
 };
 
 export default function RfpIntake() {
@@ -26,6 +28,8 @@ export default function RfpIntake() {
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(false);
   const [draftBusy, setDraftBusy] = useState(false);
+  const [approvalBusy, setApprovalBusy] = useState(false);
+  const [finalDocument, setFinalDocument] = useState<FinalDocument | null>(null);
 
   useEffect(() => {
     setToken(window.localStorage.getItem(SESSION_TOKEN_KEY) ?? "");
@@ -37,6 +41,7 @@ export default function RfpIntake() {
     setToken("");
     setTickets([]);
     setSelected(null);
+    setFinalDocument(null);
   }, []);
 
   const loadTickets = useCallback(async () => {
@@ -84,6 +89,46 @@ export default function RfpIntake() {
     }
   }
 
+  async function refreshTicket(ticketId: string) {
+    const detail = await rfpsApi.detail(ticketId);
+    setSelected(detail);
+    setTickets((current) => current.map((item) => item.ticket_id === detail.ticket_id ? detail : item));
+    if (detail.status === "done") setFinalDocument(await rfpsApi.final(ticketId));
+    else setFinalDocument(null);
+  }
+
+  async function startApprovals(ticketId: string) {
+    setApprovalBusy(true);
+    setLoadError("");
+    try {
+      await rfpsApi.startApprovals(ticketId);
+      await refreshTicket(ticketId);
+    } catch (error) {
+      setLoadError(error instanceof RfpApiError ? error.message : "No pudimos iniciar las aprobaciones.");
+    } finally {
+      setApprovalBusy(false);
+    }
+  }
+
+  async function resumeApproval(
+    ticketId: string,
+    departmentId: DepartmentSection["department_id"],
+    decision: ApprovalDecision,
+    feedback?: string,
+  ) {
+    setApprovalBusy(true);
+    setLoadError("");
+    try {
+      const response = await rfpsApi.resumeApproval(ticketId, departmentId, decision, feedback);
+      if (response.final_document) setFinalDocument(response.final_document);
+      await refreshTicket(ticketId);
+    } catch (error) {
+      setLoadError(error instanceof RfpApiError ? error.message : "No pudimos registrar la decisión.");
+    } finally {
+      setApprovalBusy(false);
+    }
+  }
+
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoginBusy(true);
@@ -125,12 +170,13 @@ export default function RfpIntake() {
       <UploadPanel onCreated={async (ticketId) => {
         const detail = await rfpsApi.detail(ticketId);
         setSelected(detail);
+        setFinalDocument(null);
         await loadTickets();
       }} />
       {loadError && <Retry message={loadError} retry={loadTickets} />}
       <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
-        <TicketList tickets={tickets} loading={loading} selectedId={selected?.ticket_id} onSelect={async (id) => setSelected(await rfpsApi.detail(id))} />
-        <TicketDetail ticket={selected} draftBusy={draftBusy} onGenerate={generateDraft} />
+        <TicketList tickets={tickets} loading={loading} selectedId={selected?.ticket_id} onSelect={refreshTicket} />
+        <TicketDetail ticket={selected} draftBusy={draftBusy} approvalBusy={approvalBusy} finalDocument={finalDocument} onGenerate={generateDraft} onStartApprovals={startApprovals} onResumeApproval={resumeApproval} />
       </div>
     </div>
   );
@@ -181,10 +227,19 @@ function TicketList({ tickets, loading, selectedId, onSelect }: { tickets: RfpTi
   </section>;
 }
 
-function TicketDetail({ ticket, draftBusy, onGenerate }: { ticket: RfpTicket | null; draftBusy: boolean; onGenerate: (ticketId: string) => Promise<void> }) {
+function TicketDetail({ ticket, draftBusy, approvalBusy, finalDocument, onGenerate, onStartApprovals, onResumeApproval }: {
+  ticket: RfpTicket | null;
+  draftBusy: boolean;
+  approvalBusy: boolean;
+  finalDocument: FinalDocument | null;
+  onGenerate: (ticketId: string) => Promise<void>;
+  onStartApprovals: (ticketId: string) => Promise<void>;
+  onResumeApproval: (ticketId: string, departmentId: DepartmentSection["department_id"], decision: ApprovalDecision, feedback?: string) => Promise<void>;
+}) {
   if (!ticket) return <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">Selecciona un ticket para revisar su análisis.</section>;
+  const hasRejectedSection = ticket.sections.some((section) => section.approval_status === "rejected");
   return <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-mono text-slate-500">{ticket.ticket_id}</p><h3 className="text-xl font-bold text-slate-900">{ticket.metadata?.client_name ?? "Documento recibido"}</h3></div><div className="flex flex-col items-end gap-2"><Status status={ticket.status} error={ticket.processing_error} />{ticket.status === "intake_complete" && <button disabled={draftBusy} onClick={() => void onGenerate(ticket.ticket_id)} className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">{draftBusy ? "Generando…" : "Generar propuesta"}</button>}</div></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-mono text-slate-500">{ticket.ticket_id}</p><h3 className="text-xl font-bold text-slate-900">{ticket.metadata?.client_name ?? "Documento recibido"}</h3></div><div className="flex flex-col items-end gap-2"><Status status={ticket.status} error={ticket.processing_error} />{(ticket.status === "intake_complete" || hasRejectedSection) && <button disabled={draftBusy} onClick={() => void onGenerate(ticket.ticket_id)} className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">{draftBusy ? "Generando…" : hasRejectedSection ? "Regenerar propuesta" : "Generar propuesta"}</button>}{(ticket.status === "under_evaluation" || ticket.status === "needs_human_review") && <button disabled={approvalBusy} onClick={() => void onStartApprovals(ticket.ticket_id)} className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">{approvalBusy ? "Preparando…" : "Iniciar aprobaciones"}</button>}</div></div>
     {ticket.processing_error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">El análisis se interrumpió. El PDF y el ticket se conservaron para reintento.</p>}
     {ticket.status === "analyzing" && !ticket.processing_error && <p className="animate-pulse rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Conversión, clasificación y workers en curso…</p>}
     {ticket.status === "drafting" && !ticket.processing_error && <p className="animate-pulse rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Los generadores y evaluadores están trabajando por departamento…</p>}
@@ -204,11 +259,33 @@ function TicketDetail({ ticket, draftBusy, onGenerate }: { ticket: RfpTicket | n
         <p className="mt-2 text-slate-700">Legibilidad: {evaluation.readability.score}/100 · Relevancia: {evaluation.relevance.pass ? "correcta" : "incompleta"} · Cumplimiento: {evaluation.compliance.pass ? "correcto" : "con incidencias"}</p>
         {evaluation.actionable_feedback.length > 0 && <ul className="mt-2 list-disc pl-5 text-slate-700">{evaluation.actionable_feedback.map((item, index) => <li key={index}>{item}</li>)}</ul>}
       </div>)}
+      {ticket.status === "waiting_for_approval" && section.approval_status === "pending" && <ApprovalPanel ticketId={ticket.ticket_id} section={section} busy={approvalBusy} onDecision={onResumeApproval} />}
+      {section.approval_status && section.approval_status !== "pending" && <p className={`mt-3 rounded-lg p-3 text-sm font-semibold ${section.approval_status === "approved" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>{section.approval_status === "approved" ? `Aprobada por ${section.approver}` : `Rechazada por ${section.approver}`}</p>}
     </article>)}
+    {ticket.status === "done" && finalDocument && <article className="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><h4 className="font-bold text-emerald-950">Documento final · {finalDocument.currency}</h4><p className="mt-1 text-xs text-emerald-800">Aprobado por todos los departamentos · {new Date(finalDocument.generated_at).toLocaleString("es-ES")}</p><div className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-4 text-sm leading-6 text-slate-700">{finalDocument.content}</div></article>}
   </section>;
 }
 
-function Status({ status, error }: { status: RfpStatus; error: string | null }) { const label = error ? "Error de proceso" : STATUS_LABELS[status]; return <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${error ? "bg-rose-100 text-rose-700" : status === "intake_complete" || status === "under_evaluation" ? "bg-emerald-100 text-emerald-700" : status === "needs_human_review" ? "bg-amber-100 text-amber-800" : status === "discarded" ? "bg-slate-200 text-slate-700" : "bg-blue-100 text-blue-700"}`}>{label}</span>; }
+function ApprovalPanel({ ticketId, section, busy, onDecision }: {
+  ticketId: string;
+  section: DepartmentSection;
+  busy: boolean;
+  onDecision: (ticketId: string, departmentId: DepartmentSection["department_id"], decision: ApprovalDecision, feedback?: string) => Promise<void>;
+}) {
+  const [feedback, setFeedback] = useState("");
+  return <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+    <h5 className="font-bold text-blue-950">Decisión de {section.approver ?? section.contact}</h5>
+    <p className="mt-1 text-sm text-blue-800">Esta pausa sólo afecta a {section.department_name}. Iteraciones de revisión: {section.approval_iteration ?? 0}/3.</p>
+    <label className="mt-3 block text-sm font-medium text-slate-700">Feedback para rechazo o cambios<textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={3} className={`${inputClass} resize-y`} /></label>
+    <div className="mt-3 flex flex-wrap gap-2">
+      <button disabled={busy} onClick={() => void onDecision(ticketId, section.department_id, "approve")} className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Aprobar</button>
+      <button disabled={busy || !feedback.trim()} onClick={() => void onDecision(ticketId, section.department_id, "request_changes", feedback.trim())} className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Solicitar cambios</button>
+      <button disabled={busy || !feedback.trim()} onClick={() => void onDecision(ticketId, section.department_id, "reject", feedback.trim())} className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Rechazar</button>
+    </div>
+  </div>;
+}
+
+function Status({ status, error }: { status: RfpStatus; error: string | null }) { const label = error ? "Error de proceso" : STATUS_LABELS[status]; return <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${error ? "bg-rose-100 text-rose-700" : status === "intake_complete" || status === "under_evaluation" || status === "done" ? "bg-emerald-100 text-emerald-700" : status === "needs_human_review" || status === "waiting_for_approval" ? "bg-amber-100 text-amber-800" : status === "discarded" ? "bg-slate-200 text-slate-700" : "bg-blue-100 text-blue-700"}`}>{label}</span>; }
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-semibold uppercase text-slate-500">{label}</p><p className="mt-1 font-bold text-slate-900">{value}</p></div>; }
 function Retry({ message, retry }: { message: string; retry: () => Promise<void> }) { return <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{message}<button onClick={() => void retry()} className="ml-3 font-bold underline">Reintentar</button></div>; }
 const inputClass = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";

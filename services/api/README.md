@@ -119,6 +119,13 @@ cumplimiento. El detalle del ticket expone borradores, historial de evaluaciones
 y número de iteración. La arquitectura y ejemplos pass/fail están en
 `docs/rfp/RFP_RESPONSE_GENERATION.md`.
 
+La Parte 3 añade `POST /api/rfps/{ticket_id}/approvals/start`, reanudación por
+departamento en `/approvals/{department_id}/resume`, trazas en `/approvals/trace`
+y el documento consolidado en `/final`. Cada rama pausa con un `interrupt` real
+y se conserva mediante un checkpointer SQLite durable; tickets, decisiones y
+documentos siguen persistidos en PostgreSQL. Véase
+`docs/rfp/RFP_APPROVAL_COMPLETION.md`.
+
 ### Validaciones (Pydantic → 422 antes de tocar TinyDB)
 
 - `status` solo `active` / `suspended` · `monthly_rate` > 0 · `categories` ⊆ lista válida (mín. 1).

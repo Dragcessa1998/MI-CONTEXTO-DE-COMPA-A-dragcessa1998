@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
 from data.pipelines.rfp_intake.models import IntakeResult
+from data.pipelines.rfp_intake.approval import generate_final_document
+from data.pipelines.rfp_intake.approval_models import ApprovalBranchResult
 from data.pipelines.rfp_intake.proposal import run_proposal_generation
 from rfp_repository import PostgresRfpRepository
 
@@ -21,7 +24,7 @@ def test_repository_rejects_non_postgres_databases() -> None:
 
 
 @pytest.mark.skipif(not DATABASE_URL, reason="TEST_POSTGRES_DATABASE_URL no configurada")
-def test_repository_round_trip_in_real_postgres() -> None:
+def test_repository_round_trip_in_real_postgres(tmp_path: Path) -> None:
     repository = PostgresRfpRepository(DATABASE_URL or "")
     with repository._connect() as connection:
         connection.execute("TRUNCATE rfp_tickets CASCADE")
@@ -123,6 +126,28 @@ def test_legacy_spanish_statuses_are_migrated() -> None:
     assert all(section["draft_content"] for section in generated["sections"])
     assert all(section["evaluation_results"][-1]["overall_pass"] for section in generated["sections"])
     assert all(section["generation_iteration"] == 1 for section in generated["sections"])
+
+    waiting = repository.start_approvals(ticket["ticket_id"])
+    assert waiting["status"] == "waiting_for_approval"
+    for section in waiting["sections"]:
+        repository.save_approval_branch(ApprovalBranchResult(
+            ticket_id=ticket["ticket_id"],
+            department_id=section["department_id"],
+            thread_id=f"rfp-{ticket['ticket_id']}:{section['department_id']}",
+            approval_status="approved",
+            approval_iteration=0,
+            draft_content=section["draft_content"],
+            interrupted=False,
+        ))
+    approved = repository.get_ticket(ticket["ticket_id"])
+    assert approved is not None
+    document = generate_final_document(approved, tmp_path)
+    repository.save_final_document(document)
+    assert repository.get_ticket(ticket["ticket_id"])["status"] == "done"
+    assert repository.get_final_document(ticket["ticket_id"])["currency"] == "EUR"
+
+    reloaded_repository = PostgresRfpRepository(DATABASE_URL or "")
+    assert reloaded_repository.get_ticket(ticket["ticket_id"])["status"] == "done"
 
     with repository._connect() as connection:
         connection.execute("TRUNCATE rfp_tickets CASCADE")

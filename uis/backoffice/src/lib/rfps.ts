@@ -8,7 +8,11 @@ export type RfpStatus =
   | "intake_complete"
   | "drafting"
   | "under_evaluation"
-  | "needs_human_review";
+  | "needs_human_review"
+  | "waiting_for_approval"
+  | "done";
+
+export type ApprovalDecision = "approve" | "reject" | "request_changes";
 
 export interface RfpMetadata {
   client_name: string;
@@ -39,7 +43,9 @@ export interface DepartmentSection {
   draft_content?: string | null;
   evaluation_results?: EvaluationResult[] | null;
   generation_iteration?: number;
-  approval_status?: string | null;
+  approval_status?: "pending" | "approved" | "rejected" | null;
+  approval_iteration?: number;
+  approval_feedback?: string | null;
   approver?: string | null;
   approved_at?: string | null;
 }
@@ -67,6 +73,15 @@ export interface RfpTicket {
   updated_at: string;
   metadata: RfpMetadata | null;
   sections: DepartmentSection[];
+}
+
+export interface FinalDocument {
+  ticket_id: string;
+  content: string;
+  file_path: string;
+  currency: "EUR" | "USD";
+  sections: DepartmentSection["department_id"][];
+  generated_at: string;
 }
 
 export class RfpApiError extends Error {
@@ -116,4 +131,18 @@ export const rfpsApi = {
     `/api/rfps/${ticketId}/draft`,
     { method: "POST" },
   ),
+  startApprovals: (ticketId: string) => request<{ ticket_id: string; status: RfpStatus }>(
+    `/api/rfps/${ticketId}/approvals/start`,
+    { method: "POST" },
+  ),
+  resumeApproval: (ticketId: string, departmentId: DepartmentSection["department_id"], decision: ApprovalDecision, feedback?: string) => request<{
+    ticket_id: string;
+    status: RfpStatus;
+    final_document: FinalDocument | null;
+  }>(`/api/rfps/${ticketId}/approvals/${departmentId}/resume`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ decision, ...(feedback ? { feedback } : {}) }),
+  }),
+  final: (ticketId: string) => request<FinalDocument>(`/api/rfps/${ticketId}/final`),
 };
