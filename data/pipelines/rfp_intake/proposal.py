@@ -45,6 +45,7 @@ def generate_department_section(
     """Genera sólo con el handoff persistido de Parte 1; nunca vuelve al PDF."""
 
     department_id = str(section["department_id"])
+    client_name = metadata.client_name.rstrip(".")
     key_aspects = [str(item) for item in section.get("key_aspects", [])]
     open_questions = [str(item) for item in section.get("open_questions", [])]
     titles = {
@@ -64,7 +65,7 @@ def generate_department_section(
         revision = "\n\nAjustes aplicados en esta revisión:\n" + "\n".join(f"- {item}" for item in feedback)
     return (
         f"## {titles[department_id]}\n\n"
-        f"Nexova propone este workstream para {metadata.client_name}. La cotización se expresará en {metadata.currency}. "
+        f"Nexova propone este workstream para {client_name}. La cotización se expresará en {metadata.currency}. "
         "El alcance se validará antes de convertir preguntas abiertas en compromisos.\n\n"
         f"### Requisitos cubiertos\n{aspects}\n\n"
         f"### Compromisos del servicio\n{commitments[department_id]} "
