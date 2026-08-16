@@ -631,6 +631,46 @@ def write_eval_snapshot_task(
     return str(destination)
 
 
+@flow(name="extract-weekly-nexova-telemetry", log_prints=True)
+def extract_weekly_nexova_telemetry(
+    window_start: str, window_end: str
+) -> list[dict[str, Any]]:
+    """Extract one bounded UTC window; runnable independently for diagnosis."""
+
+    return extract_telemetry_events_task(window_start, window_end)
+
+
+@flow(name="transform-weekly-nexova-performance", log_prints=True)
+def transform_weekly_nexova_performance(
+    events: list[dict[str, Any]], week_start: str
+) -> dict[str, Any]:
+    """Validate and aggregate a supplied event batch into the four business KPIs."""
+
+    return transform_weekly_office_program_performance_task(events, week_start)
+
+
+@flow(name="load-weekly-nexova-performance", log_prints=True)
+def load_weekly_nexova_performance(
+    week_start: str,
+    run_id: str,
+    rows: list[dict[str, Any]],
+    inputs: list[dict[str, Any]],
+) -> int:
+    """Persist lineage and publish one complete weekly result atomically."""
+
+    persist_pipeline_inputs_task(run_id, inputs)
+    return load_weekly_office_program_performance_task(week_start, rows)
+
+
+@flow(name="publish-weekly-nexova-evaluation-snapshot", log_prints=True)
+def publish_weekly_nexova_evaluation_snapshot(
+    week_start: str, run_id: str, rows: list[dict[str, Any]]
+) -> str:
+    """Publish optional evaluation evidence without making the main load depend on it."""
+
+    return write_eval_snapshot_task(week_start, run_id, rows)
+
+
 def _base_run(
     *,
     run_id: str,
@@ -688,14 +728,13 @@ def build_weekly_office_program_performance(
     persist_pipeline_run_task(run)
 
     try:
-        events = extract_telemetry_events_task(run["window_start"], run["window_end"])
+        events = extract_weekly_nexova_telemetry(
+            run["window_start"], run["window_end"]
+        )
         run = {**run, "phase": "extract", "records_extracted": len(events)}
         persist_pipeline_run_task(run)
 
-        transformed = transform_weekly_office_program_performance_task(
-            events, resolved.isoformat()
-        )
-        persist_pipeline_inputs_task(resolved_run_id, transformed["inputs"])
+        transformed = transform_weekly_nexova_performance(events, resolved.isoformat())
         run = {
             **run,
             "phase": "transform",
@@ -707,13 +746,16 @@ def build_weekly_office_program_performance(
         }
         persist_pipeline_run_task(run)
 
-        loaded = load_weekly_office_program_performance_task(
-            resolved.isoformat(), transformed["rows"]
+        loaded = load_weekly_nexova_performance(
+            resolved.isoformat(),
+            resolved_run_id,
+            transformed["rows"],
+            transformed["inputs"],
         )
         run = {**run, "phase": "load", "records_loaded": loaded}
         persist_pipeline_run_task(run)
 
-        snapshot_state = write_eval_snapshot_task(
+        snapshot_state = publish_weekly_nexova_evaluation_snapshot(
             resolved.isoformat(), resolved_run_id, transformed["rows"], return_state=True
         )
         optional_snapshot_status = (

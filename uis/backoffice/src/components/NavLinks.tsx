@@ -7,6 +7,7 @@ const NAV = [
   { label: "Procesos", href: "/processes" },
   { label: "Proveedores", href: "/suppliers" },
   { label: "Incidentes", href: "/incidents" },
+  { label: "Reporting", href: "/reporting" },
   { label: "Telemetría", href: "/telemetry" },
 ];
 

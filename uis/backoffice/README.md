@@ -70,6 +70,15 @@ La URL se configura con `NEXT_PUBLIC_PLATFORM_API_URL` (por defecto
 services/api/.venv/bin/python scripts/seed_incidents.py
 ```
 
+## Reporting semanal (`/reporting`)
+
+Dashboard ejecutivo autenticado para Laura Mendoza y Elena Vargas. Consume
+`GET /reporting/weekly-office-program-performance` y muestra los cuatro KPI del
+pipeline de negocio: coste de materiales, kits entregados, frecuencia de
+faltantes y frecuencia de variaciones de coste. La semana ISO/UTC siempre está
+visible; los filtros de oficina y programa son locales y EUR/USD nunca se suman
+entre sí. El token JWT se comparte con la sesión iniciada en `/incidents`.
+
 ## Ejecutar (API + backoffice)
 
 El panel necesita la API corriendo. En **dos terminales**:

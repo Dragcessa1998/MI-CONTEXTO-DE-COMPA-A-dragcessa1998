@@ -1,11 +1,12 @@
 import { currentTelemetryOffice, track } from "@/services/telemetry";
+import { SESSION_TOKEN_KEY, sessionToken } from "@/lib/session";
+
+export { SESSION_TOKEN_KEY } from "@/lib/session";
 
 const API_URL =
   process.env.NEXT_PUBLIC_PLATFORM_API_URL ??
   process.env.NEXT_PUBLIC_SUPPLIERS_API_URL ??
   "/platform-api";
-
-export const SESSION_TOKEN_KEY = "nexova_access_token";
 
 export const INCIDENT_STATUSES = ["open", "in_progress", "resolved", "discarded"] as const;
 export type IncidentStatus = (typeof INCIDENT_STATUSES)[number];
@@ -99,10 +100,6 @@ export class IncidentApiError extends Error {
   ) {
     super(message);
   }
-}
-
-function sessionToken(): string {
-  return typeof window === "undefined" ? "" : window.localStorage.getItem(SESSION_TOKEN_KEY) ?? "";
 }
 
 async function request<T>(path: string, init?: RequestInit, authenticated = true): Promise<T> {
