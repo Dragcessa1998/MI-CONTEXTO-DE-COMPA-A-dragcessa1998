@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from tinydb import Query
 
 
 API_DIR = Path(__file__).resolve().parents[1]
@@ -70,6 +71,7 @@ def client(anonymous_client: TestClient) -> TestClient:
         },
     )
     assert registration.status_code == 201
+    database.users_table().update({"role": "manager"}, Query().id == registration.json()["id"])
     login = anonymous_client.post(
         "/auth/login",
         json={

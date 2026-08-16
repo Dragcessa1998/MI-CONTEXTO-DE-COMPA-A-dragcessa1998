@@ -12,13 +12,14 @@ Arranque:
 """
 
 import math
+import os
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app_security import install_security_middleware
 from database import suppliers_table
 from routes.agent import router as agent_router
 from routes.auth import router as auth_router
@@ -30,19 +31,17 @@ from routes.rfps import router as rfps_router
 from routes.suppliers import router as suppliers_router
 from routes.users import router as users_router
 
+is_production = os.getenv("APP_ENV") == "production"
 app = FastAPI(
     title="Nexova — Operations Platform API",
     description="Auth, proveedores e incidentes operativos centralizados sobre FastAPI y TinyDB.",
     version="3.0.0",
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
 )
 
-# CORS: el backoffice (uis/backoffice, :3000) consume esta API desde el navegador.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+install_security_middleware(app)
 
 app.include_router(auth_router)
 app.include_router(users_router)

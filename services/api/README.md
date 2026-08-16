@@ -5,7 +5,7 @@ formación, nóminas, oficinas…), en sustitución de la hoja de cálculo que P
 (HR Manager) compartía por email. Proyecto del syllabus **"Supplier Directory — Lightweight
 Storage API"**, solicitado por el CTO Sergio Molina.
 
-**Stack:** FastAPI + TinyDB + Pydantic + JWT, gestionado con [`uv`](https://docs.astral.sh/uv/).
+**Stack:** FastAPI + TinyDB + Pydantic + PyJWT, gestionado con [`uv`](https://docs.astral.sh/uv/).
 El modelo, las categorías, los estados y los datos del seeder replican **exactamente**
 [CONTEXT.md](CONTEXT.md) (CONTEXT-nexova · supplier-directory).
 
@@ -130,10 +130,14 @@ documentos siguen persistidos en PostgreSQL. Véase
 
 `GET /api/rfps/events` envía `rfp_ticket_created` mediante SSE autenticado, con
 keep-alive y replay por `Last-Event-ID`. `/agent/ws/{session_id}` expone el mismo
-agente de soporte sobre WebSocket: JWT y `client_id` van en el handshake, los
+agente de soporte sobre WebSocket: el JWT va en el subprotocolo
+`nexova.jwt.<token>` (nunca en la URL) y `client_id` va en el handshake, los
 deltas se publican como `token_chunk` y `interrupt_requested` cancela el stream
 activo antes de crear un turno nuevo. El contrato y las pruebas están en
 `docs/realtime/`.
+
+Todo `/api/rfps` exige rol `manager` o `admin`; autenticar como usuario de soporte
+no concede permiso para generar ni aprobar propuestas.
 
 ## Controles de seguridad de IA
 

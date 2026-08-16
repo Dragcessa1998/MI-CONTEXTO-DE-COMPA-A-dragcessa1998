@@ -4,10 +4,13 @@ El agente de soporte de primera línea de Roberto Díaz conserva su routing RAG,
 consulta read-only de incidentes y reglas de respuesta. Sólo cambia el canal:
 
 ```text
-ws://localhost:8000/agent/ws/{session_id}?token={jwt}&client_id={client_id}
+wss://nexova.example/platform-api/agent/ws/{session_id}?client_id={client_id}
+Sec-WebSocket-Protocol: nexova.jwt.{jwt}
 ```
 
-El servidor rechaza antes de eventos de chat un JWT ausente/inválido. La sesión
+El token nunca aparece en la URL. El servidor lo extrae del subprotocolo, no lo
+refleja en la respuesta y rechaza antes de eventos de chat un JWT
+ausente/inválido. La sesión
 usa `agent_id=first_line_support`, el `user_id` del JWT, `client_id` y el mismo
 `session_id` como identidad estable de conversación.
 
@@ -52,3 +55,5 @@ La prueba WebSocket interrumpe después del primer chunk, confirma que no aparec
 ningún token posterior del `message_id` antiguo, recibe la respuesta redirigida
 como turno nuevo y reconecta para comprobar el historial. Otra prueba abre dos
 sockets sobre la misma sesión y verifica una sola llamada al productor.
+`test_websocket_rejects_legacy_query_string_token` demuestra además que el
+formato histórico `?token=` ya no autentica.

@@ -14,17 +14,17 @@ En este capítulo aprenderás:
 
 ## El App Router de Next.js: carpetas que son rutas
 
-Next.js es un framework construido sobre React. Un framework es un conjunto de convenciones y herramientas que te da una estructura ya resuelta (enrutado, renderizado, optimizaciones) para que no la montes desde cero. La aplicación usa Next.js 14, como ves en `package.json`:
+Next.js es un framework construido sobre React. Un framework es un conjunto de convenciones y herramientas que te da una estructura ya resuelta (enrutado, renderizado, optimizaciones) para que no la montes desde cero. La aplicación usa Next.js 16, como ves en `package.json`:
 
 ```json
 "dependencies": {
-  "next": "^14.2.18",
+  "next": "16.3.1",
   "react": "^18.3.1",
   "react-dom": "^18.3.1"
 }
 ```
 
-La novedad clave de Next.js 14 es el **App Router**, un sistema de enrutado basado en la carpeta `src/app`. La idea central es sencilla y muy potente: **cada carpeta dentro de `app` es un segmento de la URL, y un archivo llamado `page.tsx` define la página que se renderiza en esa ruta.** No hay un fichero central de configuración de rutas: la estructura de carpetas *es* el mapa de la aplicación.
+La aplicación usa el **App Router**, el sistema de enrutado basado en la carpeta `src/app`. La idea central es sencilla y muy potente: **cada carpeta dentro de `app` es un segmento de la URL, y un archivo llamado `page.tsx` define la página que se renderiza en esa ruta.** No hay un fichero central de configuración de rutas: la estructura de carpetas *es* el mapa de la aplicación.
 
 Mira el árbol real del proyecto y cómo se traduce a URL:
 

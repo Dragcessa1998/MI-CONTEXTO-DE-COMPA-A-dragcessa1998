@@ -14,7 +14,7 @@ En este capítulo aprenderás:
 
 ## El sistema de un vistazo
 
-Nexova es un *monorepo*: un único repositorio que contiene varias aplicaciones y servicios independientes, en lugar de un repositorio por proyecto. Conviven tres aplicaciones de interfaz (Next.js 14, React 18, Tailwind), dos backends (uno en TypeScript con Express, otro en Python con FastAPI) y un módulo de lógica de negocio compartido. El siguiente diagrama muestra los componentes con contenido real y cómo fluyen los datos entre ellos:
+Nexova es un *monorepo*: un único repositorio que contiene varias aplicaciones y servicios independientes, en lugar de un repositorio por proyecto. Conviven tres aplicaciones de interfaz (Next.js 16, React 18, Tailwind), dos backends (uno en TypeScript con Express, otro en Python con FastAPI) y un módulo de lógica de negocio compartido. El siguiente diagrama muestra los componentes con contenido real y cómo fluyen los datos entre ellos:
 
 ```text
                          ┌──────────────────────────────────────────────┐

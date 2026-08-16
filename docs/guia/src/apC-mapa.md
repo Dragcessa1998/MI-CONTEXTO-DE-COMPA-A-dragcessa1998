@@ -52,7 +52,7 @@ El reparto de los 100 puntos se ve directamente en `src/utils/transformations.ts
 
 ## uis/ — las interfaces
 
-`uis/` agrupa las tres aplicaciones de interfaz, todas con Next.js 14 (App Router), React 18 y Tailwind CSS.
+`uis/` agrupa las tres aplicaciones de interfaz, todas con Next.js 16 (App Router), React 18 y Tailwind CSS.
 
 - **`uis/website/`** (Hito 4): la web pública del Hito 1 migrada a componentes de React. Sus componentes viven en `src/components/website/` (`Hero.tsx`, `Services.tsx`, `ApplyForm.tsx`, etc.), con la ruta `/apply` para el formulario.
 - **`uis/talent-pipeline-tracker/`** (Hito 3): aplicación que consume la API del curso (`NEXT_PUBLIC_API_URL`). Implementa el CRUD completo de registros. La función `deleteRecord` está en `src/lib/api.ts`, y el borrado con confirmación en línea (`role="alertdialog"`) en `src/components/CandidateDetail.tsx`. Las etiquetas legibles de dominio están en `src/lib/labels.ts`.

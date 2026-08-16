@@ -187,22 +187,27 @@ app.get("/reports/summary", (_req: Request, res: Response) => {
 
 ## CORS: dejar entrar al navegador
 
-Cuando una página web servida desde un origen (por ejemplo, el backoffice en `http://localhost:3000`) intenta llamar a una API en otro origen (la Talent API en `http://localhost:4000`), el navegador aplica una política de seguridad llamada **CORS** (Cross-Origin Resource Sharing). Por defecto, bloquea esas llamadas a menos que el servidor declare explícitamente que las permite. La Talent API lo hace con un middleware propio:
+Cuando una página web intenta llamar a una API en otro origen, el navegador aplica una política de seguridad llamada **CORS** (Cross-Origin Resource Sharing). Por defecto, bloquea esas llamadas a menos que el servidor declare explícitamente que las permite. La Talent API compara el origen con una allowlist explícita:
 
 ```ts
 app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header("Access-Control-Allow-Origin", "*");
+  const origin = req.header("Origin");
+  if (!origin || !allowedOrigins.includes(origin)) {
+    if (req.method === "OPTIONS") return res.sendStatus(403);
+    return next();
+  }
+  res.header("Access-Control-Allow-Origin", origin);
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.header("Access-Control-Allow-Headers", "Authorization,Content-Type");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 ```
 
-Las tres primeras líneas añaden cabeceras que le dicen al navegador: acepto peticiones de cualquier origen, con estos métodos y con la cabecera `Content-Type`. La cuarta resuelve la **petición previa** (preflight): antes de un `POST` o un `PATCH`, el navegador envía una petición `OPTIONS` para preguntar si la operación está permitida. El servidor responde con **204** (sin contenido) y la verdadera petición sigue su curso. Sin este bloque, el backoffice vería errores de CORS en la consola y no podría leer ni escribir datos.
+El middleware refleja únicamente un origen autorizado, permite `Authorization` y resuelve la **petición previa** (preflight) con **204**. Un origen desconocido recibe 403 en el preflight y nunca obtiene cabeceras CORS. Además, todas las rutas con datos exigen un Bearer JWT con rol `manager` o `admin`.
 
 ::: {.callout .important}
-**Importante:** `Access-Control-Allow-Origin: *` abre la API a cualquier origen, lo cual es cómodo para desarrollar, pero demasiado permisivo para producción. En un despliegue real restringirías el origen al dominio concreto del backoffice. Para el proyecto Nexova, donde todo corre en `localhost`, el comodín es adecuado.
+**Importante:** no uses `Access-Control-Allow-Origin: *` en este servicio. Incluso en local se usa una allowlist (`localhost:3001`/`127.0.0.1:3001` por defecto), de modo que desarrollo y producción comparten el mismo modelo seguro.
 :::
 
 ## Cómo arrancar la Talent API

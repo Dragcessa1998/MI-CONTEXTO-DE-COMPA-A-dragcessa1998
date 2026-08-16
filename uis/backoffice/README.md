@@ -67,7 +67,8 @@ La URL HTTP se configura con `NEXT_PUBLIC_PLATFORM_API_URL` (por defecto
 `http://localhost:8000`).
 
 La ruta `/support` usa `NEXT_PUBLIC_PLATFORM_WS_URL` (por defecto
-`ws://localhost:8000`) para el chat token-a-token. Conserva `session_id` y
+`/platform-api` same-origin) para el chat token-a-token. El JWT viaja en el
+subprotocolo WebSocket, nunca en la URL. Conserva `session_id` y
 `client_id` en el navegador, rehidrata el historial al reconectar y permite
 interrumpir una respuesta sin borrar el contenido parcial.
 
