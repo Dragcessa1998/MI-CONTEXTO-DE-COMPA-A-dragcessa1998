@@ -1,0 +1,38 @@
+============================================================
+  NEXOVA — SUPPORT TICKET ANALYSIS
+  Source file: incidents-nexova.csv
+============================================================
+
+TOTAL RECORDS IN FILE .......... 100
+  ├─ Valid records ................ 96
+  └─ Invalid / incomplete .......... 4
+
+INVALID RECORDS BREAKDOWN
+  ├─ Missing client_company             1
+  ├─ Invalid or missing category        1
+  ├─ Invalid or missing email           1
+  ├─ Closed ticket, no score            1
+
+BREAKDOWN BY CATEGORY (valid records)
+  ├─ TECHNICAL                     28  (29.2%)
+  ├─ BILLING                       18  (18.8%)
+  ├─ ACCESS                        21  (21.9%)
+  ├─ HR_QUERY                      17  (17.7%)
+  ├─ COMPLAINT                     12  (12.5%)
+
+BREAKDOWN BY STATUS (valid records)
+  ├─ OPEN                          27  (28.1%)
+  ├─ CLOSED                        56  (58.3%)
+  ├─ DISCARDED                     13  (13.5%)
+
+SATISFACTION INDEX (closed tickets)
+  Scored tickets: 56 of 56
+  Average score: 3.84 / 5.00
+  ├─ Score 1 (Very dissatisfied) ... 2
+  ├─ Score 2 (Dissatisfied) ... 5
+  ├─ Score 3 (Neutral) ... 10
+  ├─ Score 4 (Satisfied) ... 22
+  ├─ Score 5 (Very satisfied) ... 17
+
+============================================================
+Export results to CSV? [y / n]: Results were not exported.

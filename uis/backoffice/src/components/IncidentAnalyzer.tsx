@@ -53,8 +53,19 @@ export default function IncidentAnalyzer() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setHasSession(Boolean(window.localStorage.getItem(SESSION_TOKEN_KEY)));
+    const authenticated = Boolean(window.localStorage.getItem(SESSION_TOKEN_KEY));
+    setHasSession(authenticated);
     setSessionReady(true);
+    if (authenticated) {
+      incidentsApi.latestAnalysis()
+        .then(setAnalysis)
+        .catch((caught) => {
+          if (caught instanceof IncidentApiError && caught.status === 401) {
+            setHasSession(false);
+          }
+          // Un 404 sólo significa que todavía no se ha analizado ningún archivo.
+        });
+    }
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {

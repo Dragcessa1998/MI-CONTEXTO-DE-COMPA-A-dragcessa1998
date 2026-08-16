@@ -97,7 +97,7 @@ def test_shared_analysis_rejects_empty_or_incorrect_csv(text: str, message: str)
 
 def test_cli_accepts_path_prints_summary_and_exports_csv(tmp_path: Path):
     completed = subprocess.run(
-        [sys.executable, str(REPO_ROOT / "analyze.py"), str(CSV_PATH)],
+        [sys.executable, str(REPO_ROOT / "scripts" / "analyze.py"), str(CSV_PATH)],
         input="y\n",
         text=True,
         capture_output=True,
@@ -131,6 +131,11 @@ def test_api_analyzes_csv_and_exports_last_result(client: TestClient):
     assert summary["satisfaction"]["average_score"] == 3.84
     assert "@" not in response.text
 
+    latest = client.get("/api/incidents/results/latest")
+    assert latest.status_code == 200
+    assert latest.json() == summary
+    assert "@" not in latest.text
+
     export = client.get("/api/incidents/results/export")
     assert export.status_code == 200
     assert export.headers["content-type"].startswith("text/csv")
@@ -142,6 +147,7 @@ def test_api_analyzes_csv_and_exports_last_result(client: TestClient):
 
 def test_api_rejects_bad_inputs_and_export_without_analysis(client: TestClient):
     assert client.get("/api/incidents/results/export").status_code == 404
+    assert client.get("/api/incidents/results/latest").status_code == 404
 
     wrong_extension = client.post(
         "/api/incidents/analyze",
@@ -174,6 +180,8 @@ def test_analysis_routes_require_authentication(anonymous_client: TestClient):
         files={"file": ("incidents.csv", CSV_PATH.read_bytes(), "text/csv")},
     )
     export = anonymous_client.get("/api/incidents/results/export")
+    latest = anonymous_client.get("/api/incidents/results/latest")
 
     assert upload.status_code == 401
     assert export.status_code == 401
+    assert latest.status_code == 401

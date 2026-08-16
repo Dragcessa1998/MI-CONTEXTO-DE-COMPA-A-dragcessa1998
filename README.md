@@ -97,7 +97,7 @@ uv run uvicorn main:app --port 8000  # Swagger UI en http://localhost:8000/docs
 
 # Analizador de incidentes por terminal (sin enviar PII a servicios externos)
 cd ../..
-python analyze.py data/incidents-nexova.csv
+python scripts/analyze.py data/incidents-nexova.csv
 
 # Talent API (Express, puerto 4000)
 cd services/talent-api
@@ -125,6 +125,7 @@ cd uis/talent-pipeline-tracker && npm install && npm run dev
 - [`AGENTS.md`](./AGENTS.md) — flujo de trabajo, zonas protegidas y dónde va cada cosa.
 - [`CONTEXT.md`](./CONTEXT.md) — briefing de la empresa (Nexova).
 - [`memory-bank/progress.md`](./memory-bank/progress.md) — estado detallado y próximos pasos.
+- [`docs/evidence/README.md`](./docs/evidence/README.md) — ejecución real del CSV y capturas de consola/panel sin PII.
 - [`.agents/rules/monorepo-conventions.md`](./.agents/rules/monorepo-conventions.md) — convenciones del monorepo.
 
 ---

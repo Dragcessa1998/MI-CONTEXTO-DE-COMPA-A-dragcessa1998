@@ -190,6 +190,7 @@ export const incidentsApi = {
       body: formData,
     });
   },
+  latestAnalysis: () => request<IncidentAnalysisSummary>("/api/incidents/results/latest"),
   exportAnalysis: async (): Promise<Blob> => {
     const token = sessionToken();
     let response: Response;

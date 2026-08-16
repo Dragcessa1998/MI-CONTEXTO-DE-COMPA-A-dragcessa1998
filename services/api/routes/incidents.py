@@ -88,6 +88,17 @@ def export_incident_analysis() -> Response:
     )
 
 
+@router.get("/results/latest")
+def read_latest_incident_analysis() -> dict[str, object]:
+    """Permite recuperar el último resumen agregado tras recargar el panel."""
+
+    with _analysis_lock:
+        analysis = _last_analysis
+    if analysis is None:
+        raise HTTPException(status_code=404, detail="Todavía no hay un análisis disponible")
+    return analysis.as_dict()
+
+
 def reset_last_analysis() -> None:
     """Aísla el estado en memoria entre pruebas."""
     global _last_analysis
