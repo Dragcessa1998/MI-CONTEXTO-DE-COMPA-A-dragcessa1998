@@ -1,6 +1,6 @@
 # Weekly Office and Programme Performance Pipeline
 
-Status: Part 1 designed; Part 2 implemented and validated locally
+Status: Parts 1–3 implemented and validated locally
 Company: Nexova Solutions  
 Business owners: Laura Mendoza (CEO) and Elena Vargas (L&D Manager)  
 Cadence: weekly, ready every Monday morning  
@@ -306,12 +306,24 @@ client timeout is retried with the same IDs, never regenerated ones.
 
 ## Prefect Mapping
 
-### Main flow
+### Main flow and subflows
 
 `build_weekly_office_program_performance(week_start, trigger_source,
-requested_by=None)` is the single v1 flow. Its weekly deployment runs Monday at
-06:00 UTC. A manual or backfill invocation calls the same flow with an explicit
-ISO Monday.
+requested_by=None)` is the orchestration flow. Its weekly deployment runs Monday
+at 06:00 UTC. A manual or backfill invocation calls the same flow with an
+explicit ISO Monday. Part 3 separates its stages into independently runnable
+subflows with explicit, serializable inputs and outputs:
+
+| Prefect subflow | Inputs | Output |
+| --- | --- | --- |
+| `extract_weekly_nexova_telemetry` | UTC `window_start`, `window_end` | bounded telemetry event list |
+| `transform_weekly_nexova_performance` | events, ISO `week_start` | KPI rows, lineage and validation evidence |
+| `load_weekly_nexova_performance` | week, run ID, KPI rows, lineage inputs | published row count |
+| `publish_weekly_nexova_evaluation_snapshot` | week, run ID, KPI rows | optional snapshot path |
+
+The optional snapshot subflow is invoked with `return_state=True`; a failed
+snapshot is recorded as non-critical only after the main reporting load has
+committed.
 
 ### Tasks
 
@@ -408,10 +420,32 @@ fail without failing its flow, and the authenticated endpoint tests covered
 status, manual trigger, KPI response, Monday validation and active-run conflict.
 The Next.js production build still produces the existing seven routes.
 
+## Part 3 Verification
+
+Part 3 retains the Part 2 contract and adds:
+
+1. three mandatory extract/transform/load subflows plus a fourth optional
+   evidence subflow;
+2. four isolated transformation-task tests in
+   `tests/pipelines/test_pipeline.py`, including invalid-input rejection,
+   duplicate handling and a hand-calculated material-cost KPI;
+3. the authenticated backoffice route `/reporting`, which fetches
+   `GET /reporting/weekly-office-program-performance`, displays the exact four
+   KPIs and filters by ISO week, office and programme;
+4. currency-safe aggregation: EUR and USD are presented separately and never
+   combined into a false executive total;
+5. a production build on the patched Next.js 16/React 19 stack with zero known
+   npm vulnerabilities.
+
+Local evidence on 17/08/2026: **61 backend/pipeline tests passed**; the real
+Prefect CLI processed seven events into two rows and showed all four subflows
+in `Completed` state. The Next.js production build generated `/reporting` and
+the seven pre-existing routes; `npm audit` reported zero vulnerabilities.
+
 ## Scope Boundaries
 
 Version 1 intentionally excludes currency conversion, forecasting, additional
 business KPIs and new event types. It produces only the weekly office/programme
 dataset required by Laura and Elena. Part 2 implements the flow, database
-objects and HTTP boundary; Part 3 may split stages into subflows and add the
+objects and HTTP boundary; Part 3 splits the stages into subflows and adds the
 business dashboard without changing this contract.
