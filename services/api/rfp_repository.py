@@ -9,9 +9,11 @@ from typing import Any, Protocol
 from uuid import uuid4
 
 from data.pipelines.rfp_intake.models import IntakeResult
+from data.pipelines.rfp_intake.proposal_models import ProposalGenerationResult
 
 
 MIGRATION_PATH = Path(__file__).resolve().parent / "migrations" / "002_create_rfp_intake.sql"
+GENERATION_MIGRATION_PATH = Path(__file__).resolve().parent / "migrations" / "003_create_rfp_generation.sql"
 
 
 class RfpRepository(Protocol):
@@ -19,6 +21,9 @@ class RfpRepository(Protocol):
     def get_ticket(self, ticket_id: str) -> dict[str, Any] | None: ...
     def list_tickets(self) -> list[dict[str, Any]]: ...
     def save_result(self, ticket_id: str, result: IntakeResult) -> None: ...
+    def start_drafting(self, ticket_id: str) -> dict[str, Any]: ...
+    def mark_under_evaluation(self, ticket_id: str) -> None: ...
+    def save_generation(self, ticket_id: str, result: ProposalGenerationResult) -> None: ...
     def mark_failed(self, ticket_id: str) -> None: ...
 
 
@@ -40,6 +45,7 @@ class PostgresRfpRepository:
     def initialize(self) -> None:
         with self._connect() as connection:
             connection.execute(MIGRATION_PATH.read_text(encoding="utf-8"))
+            connection.execute(GENERATION_MIGRATION_PATH.read_text(encoding="utf-8"))
             connection.commit()
 
     def create_ticket(self, raw_pdf_path: str) -> dict[str, Any]:
@@ -66,7 +72,8 @@ class PostgresRfpRepository:
                 (ticket["rfp_id"],),
             ).fetchone()
             sections = connection.execute(
-                "SELECT department_id,department_name,contact,key_aspects,open_questions,relevant_excerpts "
+                "SELECT department_id,department_name,contact,key_aspects,open_questions,relevant_excerpts,"
+                "draft_content,evaluation_results,generation_iteration,approval_status,approver,approved_at "
                 "FROM rfp_department_sections WHERE rfp_id=%s ORDER BY department_id",
                 (ticket["rfp_id"],),
             ).fetchall()
@@ -133,6 +140,58 @@ class PostgresRfpRepository:
                             Jsonb(section.relevant_excerpts),
                         ),
                     )
+            connection.commit()
+
+    def start_drafting(self, ticket_id: str) -> dict[str, Any]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "UPDATE rfp_tickets SET status='drafting',processing_error=NULL,updated_at=NOW() "
+                "WHERE ticket_id=%s AND status IN ('intake_complete','under_evaluation','needs_human_review') "
+                "RETURNING *",
+                (ticket_id,),
+            ).fetchone()
+            connection.commit()
+        if row is None:
+            raise ValueError("El ticket no está listo para generar una propuesta")
+        return self.get_ticket(ticket_id) or self._hydrate(row, None, [])
+
+    def mark_under_evaluation(self, ticket_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE rfp_tickets SET status='under_evaluation',updated_at=NOW() WHERE ticket_id=%s",
+                (ticket_id,),
+            )
+            connection.commit()
+
+    def save_generation(self, ticket_id: str, result: ProposalGenerationResult) -> None:
+        from psycopg.types.json import Jsonb
+
+        with self._connect() as connection:
+            ticket = connection.execute(
+                "SELECT rfp_id FROM rfp_tickets WHERE ticket_id=%s FOR UPDATE",
+                (ticket_id,),
+            ).fetchone()
+            if ticket is None:
+                raise KeyError("ticket inexistente")
+            for section in result.sections:
+                updated = connection.execute(
+                    "UPDATE rfp_department_sections SET draft_content=%s,evaluation_results=%s,"
+                    "generation_iteration=%s,approval_status=NULL,approver=NULL,approved_at=NULL "
+                    "WHERE rfp_id=%s AND department_id=%s",
+                    (
+                        section.draft_content,
+                        Jsonb([item.model_dump(by_alias=True, mode="json") for item in section.evaluation_results]),
+                        section.generation_iteration,
+                        ticket["rfp_id"],
+                        section.department_id,
+                    ),
+                )
+                if updated.rowcount != 1:
+                    raise KeyError(f"sección inexistente: {section.department_id}")
+            connection.execute(
+                "UPDATE rfp_tickets SET status=%s,processing_error=NULL,updated_at=NOW() WHERE ticket_id=%s",
+                (result.status, ticket_id),
+            )
             connection.commit()
 
     def mark_failed(self, ticket_id: str) -> None:

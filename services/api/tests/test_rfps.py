@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from data.pipelines.rfp_intake.models import IntakeResult
+from data.pipelines.rfp_intake.proposal_models import ProposalGenerationResult
 from main import app
 from routes import rfps as rfp_routes
 
@@ -61,6 +62,35 @@ class MemoryRfpRepository:
             "metadata": result.metadata.model_dump(mode="json") if result.metadata else None,
             "sections": [section.model_dump(mode="json") for section in result.sections],
         })
+
+    def start_drafting(self, ticket_id: str) -> dict[str, Any]:
+        ticket = self.tickets[ticket_id]
+        if ticket["status"] not in {"intake_complete", "under_evaluation", "needs_human_review"}:
+            raise ValueError("El ticket no está listo para generar una propuesta")
+        ticket["status"] = "drafting"
+        ticket["processing_error"] = None
+        return deepcopy(ticket)
+
+    def mark_under_evaluation(self, ticket_id: str) -> None:
+        self.tickets[ticket_id]["status"] = "under_evaluation"
+
+    def save_generation(self, ticket_id: str, result: ProposalGenerationResult) -> None:
+        ticket = self.tickets[ticket_id]
+        generated = {section.department_id: section for section in result.sections}
+        for section in ticket["sections"]:
+            output = generated[section["department_id"]]
+            section.update({
+                "draft_content": output.draft_content,
+                "evaluation_results": [
+                    item.model_dump(by_alias=True, mode="json") for item in output.evaluation_results
+                ],
+                "generation_iteration": output.generation_iteration,
+                "approval_status": None,
+                "approver": None,
+                "approved_at": None,
+            })
+        ticket["status"] = result.status
+        ticket["processing_error"] = None
 
     def mark_failed(self, ticket_id: str) -> None:
         self.tickets[ticket_id]["processing_error"] = "processing_failed"
@@ -127,3 +157,40 @@ def test_invalid_business_document_becomes_discarded(
     assert ticket["status"] == "discarded"
     assert ticket["sections"] == []
     assert "pitch de proveedor" in ticket["classification_reason"]
+
+
+def test_intake_ticket_generates_and_evaluates_department_sections(
+    client: TestClient,
+    rfp_repository: MemoryRfpRepository,
+) -> None:
+    upload = client.post(
+        "/api/rfps",
+        files={"file": ("vantex.pdf", _sample("CONTEXT-nexova-request-1.pdf"), "application/pdf")},
+    )
+    ticket_id = upload.json()["ticket_id"]
+
+    response = client.post(f"/api/rfps/{ticket_id}/draft")
+
+    assert response.status_code == 202
+    assert response.json()["status"] == "drafting"
+    ticket = client.get(f"/api/rfps/{ticket_id}").json()
+    assert ticket["status"] == "under_evaluation"
+    assert len(ticket["sections"]) == 2
+    for section in ticket["sections"]:
+        assert section["draft_content"]
+        assert section["generation_iteration"] == 1
+        assert section["evaluation_results"][-1]["overall_pass"] is True
+        assert set(section["evaluation_results"][-1]) >= {
+            "readability", "relevance", "compliance", "actionable_feedback"
+        }
+
+
+def test_drafting_requires_completed_intake(
+    client: TestClient,
+    rfp_repository: MemoryRfpRepository,
+) -> None:
+    ticket = rfp_repository.create_ticket("/tmp/still-analyzing.pdf")
+
+    response = client.post(f"/api/rfps/{ticket['ticket_id']}/draft")
+
+    assert response.status_code == 409

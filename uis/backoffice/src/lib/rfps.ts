@@ -2,7 +2,13 @@ import { SESSION_TOKEN_KEY } from "@/lib/incidents";
 
 const API_URL = process.env.NEXT_PUBLIC_PLATFORM_API_URL ?? "/platform-api";
 
-export type RfpStatus = "analyzing" | "discarded" | "intake_complete";
+export type RfpStatus =
+  | "analyzing"
+  | "discarded"
+  | "intake_complete"
+  | "drafting"
+  | "under_evaluation"
+  | "needs_human_review";
 
 export interface RfpMetadata {
   client_name: string;
@@ -30,6 +36,22 @@ export interface DepartmentSection {
   key_aspects: string[];
   open_questions: string[];
   relevant_excerpts: string[];
+  draft_content?: string | null;
+  evaluation_results?: EvaluationResult[] | null;
+  generation_iteration?: number;
+  approval_status?: string | null;
+  approver?: string | null;
+  approved_at?: string | null;
+}
+
+export interface EvaluationResult {
+  section_id: DepartmentSection["department_id"];
+  readability: { pass: boolean; score: number; details: string };
+  relevance: { pass: boolean; missing_aspects: string[] };
+  compliance: { pass: boolean; rule_ids: string[]; violations: string[] };
+  overall_pass: boolean;
+  actionable_feedback: string[];
+  iteration: number;
 }
 
 export interface RfpTicket {
@@ -90,4 +112,8 @@ export const rfpsApi = {
   },
   list: () => request<RfpTicket[]>("/api/rfps"),
   detail: (ticketId: string) => request<RfpTicket>(`/api/rfps/${ticketId}`),
+  generate: (ticketId: string) => request<{ ticket_id: string; status: RfpStatus; status_url: string }>(
+    `/api/rfps/${ticketId}/draft`,
+    { method: "POST" },
+  ),
 };
