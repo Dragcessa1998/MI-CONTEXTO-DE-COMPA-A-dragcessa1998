@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -126,6 +127,51 @@ def test_generate_answer_uses_responses_api_and_handles_no_context(
     assert captured["model"] == pipeline_rag.GENERATION_MODEL
     assert "[SIN CONTEXTO RELEVANTE]" in captured["input"]
     assert "exclusivamente" in captured["instructions"]
+
+
+def test_generate_answer_stream_forwards_provider_deltas_and_closes_stream(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict = {}
+
+    class Stream:
+        closed = False
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            self.closed = True
+
+        def __aiter__(self):
+            async def events():
+                yield SimpleNamespace(type="response.output_text.delta", delta="Hola ")
+                yield SimpleNamespace(type="response.output_text.delta", delta="en vivo")
+
+            return events()
+
+    stream = Stream()
+
+    class Responses:
+        def stream(self, **kwargs):
+            captured.update(kwargs)
+            return stream
+
+    monkeypatch.setattr(
+        pipeline_rag,
+        "get_async_openai_client",
+        lambda: SimpleNamespace(responses=Responses()),
+    )
+
+    async def collect() -> list[str]:
+        return [chunk async for chunk in pipeline_rag.generate_answer_stream(
+            "¿Qué incluye?",
+            [{"source_document": "service-lines", "section": "Soporte", "text": "SLA de 24 horas"}],
+        )]
+
+    assert asyncio.run(collect()) == ["Hola ", "en vivo"]
+    assert captured["model"] == pipeline_rag.GENERATION_MODEL
+    assert stream.closed is True
 
 
 def test_eval_file_covers_every_source_and_two_or_more_objections() -> None:

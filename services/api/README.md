@@ -126,6 +126,15 @@ y se conserva mediante un checkpointer SQLite durable; tickets, decisiones y
 documentos siguen persistidos en PostgreSQL. Véase
 `docs/rfp/RFP_APPROVAL_COMPLETION.md`.
 
+## Tiempo real: SSE y chat WebSocket
+
+`GET /api/rfps/events` envía `rfp_ticket_created` mediante SSE autenticado, con
+keep-alive y replay por `Last-Event-ID`. `/agent/ws/{session_id}` expone el mismo
+agente de soporte sobre WebSocket: JWT y `client_id` van en el handshake, los
+deltas se publican como `token_chunk` y `interrupt_requested` cancela el stream
+activo antes de crear un turno nuevo. El contrato y las pruebas están en
+`docs/realtime/`.
+
 ### Validaciones (Pydantic → 422 antes de tocar TinyDB)
 
 - `status` solo `active` / `suspended` · `monthly_rate` > 0 · `categories` ⊆ lista válida (mín. 1).

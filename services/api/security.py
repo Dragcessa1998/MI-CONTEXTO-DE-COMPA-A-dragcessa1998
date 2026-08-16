@@ -68,8 +68,9 @@ def unauthorized() -> HTTPException:
     )
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> UserRecord:
-    """Valida firma, expiración, subject y existencia/estado del usuario."""
+def get_user_from_token(token: str) -> UserRecord:
+    """Valida un JWT reutilizable por HTTP, SSE y WebSocket."""
+
     try:
         payload = jwt.decode(token, _jwt_secret(), algorithms=[ALGORITHM])
         subject = payload.get("sub")
@@ -86,3 +87,9 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> UserRecord:
     if user is None or not user.is_active:
         raise unauthorized()
     return user
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> UserRecord:
+    """Dependencia HTTP sobre el mismo validador usado por WebSocket."""
+
+    return get_user_from_token(token)

@@ -8,6 +8,7 @@ const NAV = [
   { label: "Proveedores", href: "/suppliers" },
   { label: "Incidentes", href: "/incidents" },
   { label: "Conocimiento", href: "/knowledge" },
+  { label: "Soporte en vivo", href: "/support" },
   { label: "RFPs", href: "/rfps" },
 ];
 
