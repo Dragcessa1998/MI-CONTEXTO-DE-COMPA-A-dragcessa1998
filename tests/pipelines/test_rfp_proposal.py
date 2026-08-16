@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 import data.pipelines.rfp_intake.proposal as proposal
@@ -125,3 +126,16 @@ def test_support_evaluator_rejects_missing_24_hour_sla() -> None:
 
     assert result.passed is False
     assert any(item.startswith("SUP-24") for item in result.violations)
+
+
+def test_department_graphs_do_not_block_each_other() -> None:
+    barrier = threading.Barrier(2)
+
+    class ParallelProbeGraph:
+        def invoke(self, state: dict[str, Any]) -> dict[str, Any]:
+            barrier.wait(timeout=2)
+            return proposal.proposal_generation_graph.invoke(state)
+
+    result = proposal.run_proposal_generation(_ticket(), graph=ParallelProbeGraph())
+
+    assert {section.department_id for section in result.sections} == {"seleccion", "capacitacion"}
