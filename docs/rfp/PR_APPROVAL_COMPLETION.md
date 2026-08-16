@@ -41,5 +41,5 @@ Prueba/script relevante:
 - `tests/pipelines/test_rfp_e2e.py`
 - `tests/pipelines/test_rfp_approval.py`
 
-Resultado local: 87 tests passed, 2 skipped (PostgreSQL remoto no configurado) y
+Resultado local: 88 tests passed, 2 skipped (PostgreSQL remoto no configurado) y
 build de Next.js correcto con 10 rutas.

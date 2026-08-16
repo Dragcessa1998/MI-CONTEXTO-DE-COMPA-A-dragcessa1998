@@ -237,8 +237,7 @@ def run_proposal_generation(
     source_sections = ticket.get("sections") or []
     if not source_sections:
         raise ValueError("El ticket no contiene secciones departamentales de Parte 1")
-    generated: list[GeneratedSection] = []
-    for section in source_sections:
+    def generate_one(section: Mapping[str, Any]) -> GeneratedSection:
         state = graph.invoke({
             "metadata": metadata.model_dump(mode="json"),
             "section": dict(section),
@@ -246,12 +245,18 @@ def run_proposal_generation(
             "iteration": 0,
             "max_iterations": max_iterations,
         })
-        generated.append(GeneratedSection(
+        return GeneratedSection(
             department_id=section["department_id"],
             draft_content=state["draft_content"],
             evaluation_results=state["evaluations"],
             generation_iteration=state["iteration"],
             needs_human_review=state["needs_human_review"],
-        ))
+        )
+
+    with ThreadPoolExecutor(
+        max_workers=min(3, len(source_sections)),
+        thread_name_prefix="rfp-department",
+    ) as pool:
+        generated = list(pool.map(generate_one, source_sections))
     status = "needs_human_review" if any(item.needs_human_review for item in generated) else "under_evaluation"
     return ProposalGenerationResult(ticket_id=str(ticket["ticket_id"]), status=status, sections=generated)
