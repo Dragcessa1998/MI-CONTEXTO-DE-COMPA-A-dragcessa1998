@@ -7,6 +7,7 @@
  */
 
 import { ApiError } from "@/lib/api";
+import { SESSION_TOKEN_KEY } from "@/lib/incidents";
 
 const SUPPLIERS_API_URL = process.env.NEXT_PUBLIC_SUPPLIERS_API_URL ?? "http://localhost:8000";
 
@@ -97,10 +98,15 @@ function extractFastApiError(body: unknown): string | null {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
+  const token = typeof window === "undefined" ? "" : window.localStorage.getItem(SESSION_TOKEN_KEY) ?? "";
   try {
     res = await fetch(`${SUPPLIERS_API_URL}${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init?.headers ?? {}),
+      },
       cache: "no-store",
     });
   } catch {
