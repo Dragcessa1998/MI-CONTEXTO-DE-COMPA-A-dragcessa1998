@@ -44,7 +44,7 @@ def _trace(state: AgentState, node: str, output: dict[str, Any]) -> dict[str, An
     return output
 
 
-def _select_route(question: str) -> str:
+def select_route(question: str) -> str:
     if not question:
         return "invalid"
     uses_ticket = bool(_TICKET_TERMS.search(question))
@@ -59,7 +59,7 @@ def _select_route(question: str) -> str:
 def receive_question(state: AgentState) -> dict[str, Any]:
     question = state.get("question", "").strip()
     match = _TICKET_ID.search(question)
-    output: dict[str, Any] = {"question": question, "route": _select_route(question)}
+    output: dict[str, Any] = {"question": question, "route": select_route(question)}
     if match:
         output["ticket_id"] = int(match.group(1))
     return _trace(state, "receive_question", output)
@@ -145,22 +145,30 @@ def route_tool(state: AgentState) -> Literal["tool_answer", "combine_answer", "t
 
 def tool_answer(state: AgentState) -> dict[str, Any]:
     incident = state["incident"]
-    answer = (
+    answer = format_incident_answer(incident)
+    return _trace(state, "tool_answer", {"answer": answer})
+
+
+def format_incident_answer(incident: dict[str, Any]) -> str:
+    return (
         f"El ticket {incident['ticket_id']} está {incident['status']}. "
         f"Categoría: {incident['category']}; origen: {incident['origin']}; "
         f"sede: {incident['branch']}. Última actualización: {incident['updated_at']}."
     )
-    return _trace(state, "tool_answer", {"answer": answer})
 
 
 def combine_answer(state: AgentState) -> dict[str, Any]:
     incident = state["incident"]
-    answer = (
-        f"{state['rag_answer']}\n\nDato operativo confirmado: el ticket "
+    answer = f"{state['rag_answer']}{format_incident_suffix(incident)}"
+    return _trace(state, "combine_answer", {"answer": answer})
+
+
+def format_incident_suffix(incident: dict[str, Any]) -> str:
+    return (
+        "\n\nDato operativo confirmado: el ticket "
         f"{incident['ticket_id']} está {incident['status']} y fue actualizado "
         f"el {incident['updated_at']}."
     )
-    return _trace(state, "combine_answer", {"answer": answer})
 
 
 def tool_fallback(state: AgentState) -> dict[str, Any]:
@@ -227,4 +235,14 @@ def run_agent(question: str, *, run_id: str | None = None) -> dict[str, Any]:
         raise
 
 
-__all__ = ["AgentState", "EMPTY_QUESTION_ANSWER", "INCIDENT_FALLBACK", "agent_graph", "build_graph", "run_agent"]
+__all__ = [
+    "AgentState",
+    "EMPTY_QUESTION_ANSWER",
+    "INCIDENT_FALLBACK",
+    "agent_graph",
+    "build_graph",
+    "format_incident_answer",
+    "format_incident_suffix",
+    "run_agent",
+    "select_route",
+]

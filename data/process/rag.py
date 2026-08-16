@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 from qdrant_client import QdrantClient, models
 
 
@@ -115,6 +115,13 @@ def load_chunks(corpus_directory: Path = CORPUS_DIRECTORY) -> list[KnowledgeChun
 @lru_cache(maxsize=1)
 def get_openai_client() -> OpenAI:
     return OpenAI(timeout=30.0, max_retries=2)
+
+
+@lru_cache(maxsize=1)
+def get_async_openai_client() -> AsyncOpenAI:
+    """Cliente asíncrono para cerrar el stream HTTP al cancelar una generación."""
+
+    return AsyncOpenAI(timeout=30.0, max_retries=2)
 
 
 @lru_cache(maxsize=1)

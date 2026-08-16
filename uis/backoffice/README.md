@@ -63,8 +63,15 @@ Vista autenticada contra la API FastAPI acumulativa:
 - Listado con filtros, estados loading/error/empty/data, reintento y avance del
   ciclo de vida. Si un PATCH falla, restaura visualmente el estado anterior.
 
-La URL se configura con `NEXT_PUBLIC_PLATFORM_API_URL` (por defecto
-`http://localhost:8000`). El seeder histórico se ejecuta desde la raíz:
+La URL HTTP se configura con `NEXT_PUBLIC_PLATFORM_API_URL` (por defecto
+`http://localhost:8000`).
+
+La ruta `/support` usa `NEXT_PUBLIC_PLATFORM_WS_URL` (por defecto
+`ws://localhost:8000`) para el chat token-a-token. Conserva `session_id` y
+`client_id` en el navegador, rehidrata el historial al reconectar y permite
+interrumpir una respuesta sin borrar el contenido parcial.
+
+El seeder histórico se ejecuta desde la raíz:
 
 ```bash
 services/api/.venv/bin/python scripts/seed_incidents.py

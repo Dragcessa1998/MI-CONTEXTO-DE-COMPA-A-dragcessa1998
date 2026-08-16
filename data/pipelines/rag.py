@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
 from typing import Any
 
 from data.process.rag import (
     COLLECTION_NAME,
     EMBEDDING_MODEL,
     embed,
+    get_async_openai_client,
     get_openai_client,
     get_qdrant_client,
     setup,
@@ -20,6 +22,14 @@ DEFAULT_MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.35"))
 NO_CONTEXT_ANSWER = (
     "No encuentro información suficiente en la base de conocimiento de Nexova "
     "para responder con seguridad. Puedo escalar la consulta a un account manager."
+)
+GENERATION_INSTRUCTIONS = (
+    "Eres un asesor comercial de Nexova: seguro, directo y orientado a ayudar a cerrar, "
+    "pero nunca inventas condiciones. Responde en español usando exclusivamente las fuentes "
+    "incluidas. Presenta los plazos como promedios, salvo la garantía contractual de reemplazo "
+    "de seis meses. Nunca ofrezcas un descuento sobre el 22%; remítelo a aprobación humana. "
+    "Mantén transparencia al hablar de competidores. Si aparece [SIN CONTEXTO RELEVANTE], "
+    f"responde exactamente: {NO_CONTEXT_ANSWER}"
 )
 
 
@@ -57,14 +67,7 @@ def generate_answer(question: str, context: list[dict[str, Any]]) -> str:
 
     response = get_openai_client().responses.create(
         model=GENERATION_MODEL,
-        instructions=(
-            "Eres un asesor comercial de Nexova: seguro, directo y orientado a ayudar a cerrar, "
-            "pero nunca inventas condiciones. Responde en español usando exclusivamente las fuentes "
-            "incluidas. Presenta los plazos como promedios, salvo la garantía contractual de reemplazo "
-            "de seis meses. Nunca ofrezcas un descuento sobre el 22%; remítelo a aprobación humana. "
-            "Mantén transparencia al hablar de competidores. Si aparece [SIN CONTEXTO RELEVANTE], "
-            f"responde exactamente: {NO_CONTEXT_ANSWER}"
-        ),
+        instructions=GENERATION_INSTRUCTIONS,
         input=f"Pregunta del SDR:\n{question.strip()}\n\nFuentes recuperadas:\n{_context_for_prompt(context)}",
         max_output_tokens=450,
         text={"verbosity": "low"},
@@ -73,6 +76,24 @@ def generate_answer(question: str, context: list[dict[str, Any]]) -> str:
     if not answer:
         raise RuntimeError("El modelo de generación devolvió una respuesta vacía")
     return answer
+
+
+async def generate_answer_stream(
+    question: str,
+    context: list[dict[str, Any]],
+) -> AsyncIterator[str]:
+    """Entrega los deltas reales del proveedor; cancelar cierra el stream activo."""
+
+    async with get_async_openai_client().responses.stream(
+        model=GENERATION_MODEL,
+        instructions=GENERATION_INSTRUCTIONS,
+        input=f"Pregunta del SDR:\n{question.strip()}\n\nFuentes recuperadas:\n{_context_for_prompt(context)}",
+        max_output_tokens=450,
+        text={"verbosity": "low"},
+    ) as stream:
+        async for event in stream:
+            if event.type == "response.output_text.delta" and event.delta:
+                yield event.delta
 
 
 def query(question: str) -> str:
@@ -88,6 +109,7 @@ __all__ = [
     "NO_CONTEXT_ANSWER",
     "embed",
     "generate_answer",
+    "generate_answer_stream",
     "query",
     "retrieve",
     "setup",
