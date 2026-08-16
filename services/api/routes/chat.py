@@ -15,6 +15,7 @@ from security import get_user_from_token
 
 router = APIRouter(tags=["agent-chat"])
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,79}$")
+_JWT_PROTOCOL_PREFIX = "nexova.jwt."
 
 
 class UserMessageData(BaseModel):
@@ -57,13 +58,22 @@ async def _handle_frame(websocket: WebSocket, session: ChatSession, frame: dict[
         })
 
 
+def _jwt_subprotocol(websocket: WebSocket) -> str | None:
+    offered = websocket.headers.get("sec-websocket-protocol", "")
+    for protocol in (item.strip() for item in offered.split(",")):
+        if protocol.startswith(_JWT_PROTOCOL_PREFIX):
+            token = protocol.removeprefix(_JWT_PROTOCOL_PREFIX)
+            return token or None
+    return None
+
+
 @router.websocket("/agent/ws/{session_id}")
 async def support_chat_socket(
     websocket: WebSocket,
     session_id: str,
-    token: str | None = None,
     client_id: str | None = None,
 ) -> None:
+    token = _jwt_subprotocol(websocket)
     if token is None:
         await websocket.close(code=4401, reason="JWT obligatorio")
         return
@@ -82,6 +92,7 @@ async def support_chat_socket(
         return
 
     queue = chat_hub.subscribe(session)
+    # El servidor no refleja el protocolo que contiene el token en la respuesta.
     await websocket.accept()
     await websocket.send_json({"event": "session_snapshot", "data": session.snapshot()})
     sender = asyncio.create_task(_send_events(websocket, queue), name=f"chat-sender:{session_id}")

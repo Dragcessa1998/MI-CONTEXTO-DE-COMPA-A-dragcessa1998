@@ -38,9 +38,12 @@ interface ConnectOptions {
 
 function websocketBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_PLATFORM_WS_URL;
-  if (configured) return configured.replace(/\/$/, "");
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.hostname}:8000`;
+  if (configured?.startsWith("/")) {
+    return `${protocol}//${window.location.host}${configured.replace(/\/$/, "")}`;
+  }
+  if (configured) return configured.replace(/\/$/, "");
+  return `${protocol}//${window.location.host}/platform-api`;
 }
 
 export function connectSupportChat(options: ConnectOptions): {
@@ -55,8 +58,12 @@ export function connectSupportChat(options: ConnectOptions): {
   function open(): void {
     if (stopped) return;
     options.onState({ status: "connecting" });
-    const query = new URLSearchParams({ token: options.token, client_id: options.clientId });
-    socket = new WebSocket(`${websocketBaseUrl()}/agent/ws/${encodeURIComponent(options.sessionId)}?${query}`);
+    const query = new URLSearchParams({ client_id: options.clientId });
+    const bearerProtocol = `nexova.jwt.${options.token}`;
+    socket = new WebSocket(
+      `${websocketBaseUrl()}/agent/ws/${encodeURIComponent(options.sessionId)}?${query}`,
+      [bearerProtocol],
+    );
     socket.onopen = () => {
       options.onState({ status: "connected" });
     };

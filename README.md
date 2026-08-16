@@ -26,6 +26,9 @@ del curso: la web pública, la lógica de negocio, el panel interno y las APIs.
 | 3 — Talent Pipeline Tracker | `uis/talent-pipeline-tracker` (Next.js) | ✅ |
 | 4 — AI-driven Engineering | Monorepo + `uis/website` + `uis/backoffice` | ✅ |
 | Supplier Directory (Lightweight Storage API) | `services/api` (FastAPI) + página `/suppliers` | ✅ |
+| RFP Partes 1–3 + SSE/WebSocket | Ingesta, HITL, streaming y soporte en tiempo real | ✅ |
+| Secure AI Applications — NIST | Guardrails, trazabilidad, tests y reporte de riesgo | ✅ |
+| Secure AI Applications — OWASP | 30 evaluaciones, remediación e IaC de hardening | ✅ código/IaC · host pendiente |
 
 Extras construidos sobre la base: **`services/talent-api`** (API de talento en Express/TS),
 la **integración en vivo** del backoffice con esa API y la **vista de procesos** (pipeline).
@@ -80,7 +83,15 @@ La **lógica de negocio** (tipos, scoring, validaciones) vive una sola vez en `s
 
 ## Quick start
 
-Cada pieza se levanta por separado (los puertos son los que esperan las demás).
+Para el baseline integrado, usa Compose con un secreto JWT de al menos 32 caracteres. Las APIs y Qdrant permanecen en la red interna y sólo las UIs se enlazan a loopback:
+
+```bash
+cp .env.example .env
+# Edita .env y genera JWT_SECRET con: openssl rand -hex 32
+docker compose up --build
+```
+
+El desarrollo local también puede levantarse por piezas:
 
 ```bash
 # Lógica compartida (Hito 2) — typecheck y demo
@@ -91,7 +102,7 @@ npm run demo
 # Supplier Directory API (FastAPI, puerto 8000) — requiere uv
 cd services/api
 uv run seed                          # carga los 15 proveedores del CONTEXT (idempotente)
-uv run uvicorn main:app --port 8000  # Swagger UI en http://localhost:8000/docs
+uv run uvicorn main:app --port 8000  # Swagger sólo fuera de APP_ENV=production
 
 # Talent API (Express, puerto 4000)
 cd services/talent-api
@@ -108,9 +119,9 @@ cd uis/website                 && npm install && npm run dev
 cd uis/talent-pipeline-tracker && npm install && npm run dev
 ```
 
-> El backoffice usa `NEXT_PUBLIC_API_URL` (talent-api, por defecto `:4000`) y
-> `NEXT_PUBLIC_SUPPLIERS_API_URL` (supplier API, por defecto `:8000`). Si una API no está
-> arrancada, la vista muestra un estado de error con el comando para levantarla.
+> En Compose, el backoffice consume `/talent-api` y `/platform-api` mediante rewrites
+> same-origin. Fuera de Compose se pueden configurar los destinos internos y orígenes
+> autorizados con los archivos `.env.example`. Los endpoints de datos requieren JWT.
 
 ---
 
@@ -119,6 +130,8 @@ cd uis/talent-pipeline-tracker && npm install && npm run dev
 - [`AGENTS.md`](./AGENTS.md) — flujo de trabajo, zonas protegidas y dónde va cada cosa.
 - [`CONTEXT.md`](./CONTEXT.md) — briefing de la empresa (Nexova).
 - [`memory-bank/progress.md`](./memory-bank/progress.md) — estado detallado y próximos pasos.
+- [`docs/security/OWASP_TOP10_AUDIT.md`](./docs/security/OWASP_TOP10_AUDIT.md) — auditoría de 10 categorías en backend, frontend y agentes.
+- [`docs/CONTAINERIZATION.md`](./docs/CONTAINERIZATION.md) — arquitectura Compose endurecida y comprobaciones.
 - [`.agents/rules/monorepo-conventions.md`](./.agents/rules/monorepo-conventions.md) — convenciones del monorepo.
 
 ---

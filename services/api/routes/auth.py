@@ -23,7 +23,7 @@ def _authenticate(email: str, password: str) -> TokenResponse:
         raise unauthorized()
     expires_in = access_token_expire_minutes() * 60
     return TokenResponse(
-        access_token=create_access_token(user.id),
+        access_token=create_access_token(user.id, role=user.role),
         expires_in=expires_in,
     )
 

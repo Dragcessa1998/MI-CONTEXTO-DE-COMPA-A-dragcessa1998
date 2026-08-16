@@ -11,6 +11,7 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 
+from auth_models import UserRole
 from data.pipelines.rfp_intake import (
     ApprovalWorkflowRuntime,
     generate_final_document,
@@ -21,7 +22,7 @@ from data.pipelines.rfp_intake.approval_models import ApprovalDecisionRequest
 from data.pipelines.rfp_intake.models import DepartmentId
 from rfp_repository import RfpRepository, get_rfp_repository
 from routes.rfp_events import rfp_event_broker, stream_rfp_events
-from security import get_current_user
+from security import require_roles
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -36,7 +37,7 @@ FINAL_DIR = Path(os.getenv("RFP_FINAL_DIR", str(REPO_ROOT / "data" / "final" / "
 router = APIRouter(
     prefix="/api/rfps",
     tags=["rfp-intake"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER))],
 )
 
 

@@ -41,18 +41,18 @@ import {
   nextProcessId,
 } from "./store.js";
 import { isMalformedJson, sendError } from "./errors.js";
+import {
+  corsAllowlist,
+  requireTalentAccess,
+  securityHeaders,
+  validateTalentSecurityConfiguration,
+} from "./security.js";
 
 const app = express();
-app.use(express.json());
-
-// ---------- CORS (para que las apps de uis/ puedan consumir la API) ----------
-app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
+app.disable("x-powered-by");
+app.use(securityHeaders);
+app.use(corsAllowlist);
+app.use(express.json({ limit: "100kb", strict: true }));
 
 const PORT = Number(process.env.PORT ?? 4000);
 const PROCESS_STAGES: ProcessStage[] = [
@@ -113,6 +113,9 @@ app.get("/health", (_req: Request, res: Response) => {
     processes: processes.length,
   });
 });
+
+// La salud es pública; todo dato o acción de talento exige un JWT manager/admin.
+app.use(requireTalentAccess);
 
 // ---------- Candidatos (CRUD completo) ----------
 
@@ -314,8 +317,11 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   sendError(res, 500, "INTERNAL_ERROR", "No pudimos completar la operación. Inténtalo de nuevo.");
 });
 
-app.listen(PORT, () => {
-  console.log(`Nexova Talent API escuchando en http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== "test") {
+  validateTalentSecurityConfiguration();
+  app.listen(PORT, () => {
+    console.log(`Nexova Talent API escuchando en http://localhost:${PORT}`);
+  });
+}
 
 export default app;

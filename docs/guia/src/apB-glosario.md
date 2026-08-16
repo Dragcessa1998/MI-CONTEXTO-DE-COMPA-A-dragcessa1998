@@ -84,7 +84,7 @@ Un único repositorio que alberga varios proyectos relacionados (frontends, back
 
 ### Next.js
 
-Framework basado en React para crear aplicaciones web con enrutado, renderizado en servidor y optimizaciones incluidas. Las tres apps de `uis/` usan Next.js 14 con App Router.
+Framework basado en React para crear aplicaciones web con enrutado, renderizado en servidor y optimizaciones incluidas. Las tres apps de `uis/` usan Next.js 16 con App Router.
 
 ### Node.js
 

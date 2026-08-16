@@ -31,7 +31,7 @@ npm run demo
 
 ## Aplicaciones Next.js
 
-Las tres aplicaciones (`uis/website`, `uis/backoffice`, `uis/talent-pipeline-tracker`) comparten exactamente los mismos guiones de Next.js 14. Entra en cada carpeta y ejecuta:
+Las tres aplicaciones (`uis/website`, `uis/backoffice`, `uis/talent-pipeline-tracker`) comparten exactamente los mismos guiones de Next.js 16. Entra en cada carpeta y ejecuta:
 
 ```bash
 npm install     # instala dependencias (la primera vez)

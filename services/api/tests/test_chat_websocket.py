@@ -16,8 +16,12 @@ def _token(client: TestClient) -> str:
     return client.headers["Authorization"].removeprefix("Bearer ")
 
 
-def _url(client: TestClient, session_id: str, client_id: str = "client_test") -> str:
-    return f"/agent/ws/{session_id}?token={_token(client)}&client_id={client_id}"
+def _url(_client: TestClient, session_id: str, client_id: str = "client_test") -> str:
+    return f"/agent/ws/{session_id}?client_id={client_id}"
+
+
+def _protocols(client: TestClient) -> list[str]:
+    return [f"nexova.jwt.{_token(client)}"]
 
 
 def _receive_until(socket, event_name: str, limit: int = 100) -> tuple[dict, list[dict]]:
@@ -38,6 +42,16 @@ def test_websocket_rejects_missing_jwt_before_chat_events(anonymous_client: Test
     assert captured.value.code == 4401
 
 
+def test_websocket_rejects_legacy_query_string_token(client: TestClient) -> None:
+    url = f"/agent/ws/chat_query_token?token={_token(client)}&client_id=client_test"
+
+    with pytest.raises(WebSocketDisconnect) as captured:
+        with client.websocket_connect(url):
+            pass
+
+    assert captured.value.code == 4401
+
+
 def test_websocket_blocks_prompt_injection_without_starting_generation(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -50,7 +64,9 @@ def test_websocket_blocks_prompt_injection_without_starting_generation(
         yield "unreachable"
 
     monkeypatch.setattr(chat_hub, "token_source", token_source)
-    with client.websocket_connect(_url(client, "chat_guardrail_test")) as socket:
+    with client.websocket_connect(
+        _url(client, "chat_guardrail_test"), subprotocols=_protocols(client)
+    ) as socket:
         assert socket.receive_json()["event"] == "session_snapshot"
         socket.send_json({
             "event": "user_message",
@@ -85,7 +101,7 @@ def test_interrupt_stops_old_tokens_keeps_partial_and_rehydrates(
 
     monkeypatch.setattr(chat_hub, "token_source", token_source)
     url = _url(client, "chat_interrupt_test")
-    with client.websocket_connect(url) as socket:
+    with client.websocket_connect(url, subprotocols=_protocols(client)) as socket:
         snapshot = socket.receive_json()
         assert snapshot["event"] == "session_snapshot"
         assert snapshot["data"]["agent_id"] == "first_line_support"
@@ -129,7 +145,7 @@ def test_interrupt_stops_old_tokens_keeps_partial_and_rehydrates(
         assert cancelled.is_set()
         assert any(event["event"] == "user_message" for event in first_events)
 
-    with client.websocket_connect(url) as reconnected:
+    with client.websocket_connect(url, subprotocols=_protocols(client)) as reconnected:
         snapshot = reconnected.receive_json()
         assert snapshot["event"] == "session_snapshot"
         messages = snapshot["data"]["messages"]
@@ -153,7 +169,9 @@ def test_pubsub_fans_one_generation_out_to_two_connections(
 
     monkeypatch.setattr(chat_hub, "token_source", token_source)
     url = _url(client, "chat_pubsub_test")
-    with client.websocket_connect(url) as first, client.websocket_connect(url) as second:
+    with client.websocket_connect(
+        url, subprotocols=_protocols(client)
+    ) as first, client.websocket_connect(url, subprotocols=_protocols(client)) as second:
         assert first.receive_json()["event"] == "session_snapshot"
         assert second.receive_json()["event"] == "session_snapshot"
         first.send_json({

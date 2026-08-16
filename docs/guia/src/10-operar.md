@@ -11,7 +11,7 @@ En este capítulo aprenderás:
 
 ## El mapa de servicios
 
-El sistema de Nexova lo forman cinco procesos independientes. Tres son interfaces de usuario construidas con Next.js 14 (un framework de React para construir aplicaciones web) y dos son backends, es decir, servidores que exponen una API. Una *API* (interfaz de programación de aplicaciones) es el contrato de URL que un programa ofrece para que otros le pidan datos.
+El sistema de Nexova lo forman cinco procesos independientes. Tres son interfaces de usuario construidas con Next.js 16 (un framework de React para construir aplicaciones web) y dos son backends, es decir, servidores que exponen una API. Una *API* (interfaz de programación de aplicaciones) es el contrato de URL que un programa ofrece para que otros le pidan datos.
 
 | Servicio | Carpeta | Puerto | Comando de arranque |
 | --- | --- | --- | --- |

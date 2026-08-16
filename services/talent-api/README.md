@@ -12,11 +12,18 @@ npm install
 npm run dev        # http://localhost:4000  (recarga en caliente)
 # o: npm start
 npm run typecheck  # tsc --noEmit
+npm test
 ```
+
+`JWT_SECRET` debe coincidir con FastAPI. Excepto `/health`, toda ruta exige un
+Bearer firmado con `iss=nexova-platform`, `aud=nexova-internal`, expiración y rol
+`manager` o `admin`. Un usuario de soporte (`user`) recibe 403. Copia
+`.env.example` sólo para desarrollo y nunca guardes el secreto real en Git.
 
 ## Endpoints
 
-Todas las respuestas incluyen cabeceras **CORS** para que las apps de `uis/` (tracker, backoffice) puedan consumir la API desde el navegador.
+La allowlist CORS sólo refleja orígenes configurados. En Compose, el backoffice
+usa el proxy same-origin `/talent-api` y el servicio no publica un puerto al host.
 
 | Método | Ruta | Descripción | Lógica del Hito 2 |
 | --- | --- | --- | --- |
@@ -40,10 +47,10 @@ Todas las respuestas incluyen cabeceras **CORS** para que las apps de `uis/` (tr
 
 ```bash
 curl localhost:4000/health
-curl "localhost:4000/candidates?seniority=Senior"
-curl localhost:4000/vacancies/V-2024-0892/ranking
-curl localhost:4000/reports/summary
-curl -X POST localhost:4000/candidates -H 'Content-Type: application/json' \
+curl -H "Authorization: Bearer $TOKEN" "localhost:4000/candidates?seniority=Senior"
+curl -H "Authorization: Bearer $TOKEN" localhost:4000/vacancies/V-2024-0892/ranking
+curl -H "Authorization: Bearer $TOKEN" localhost:4000/reports/summary
+curl -X POST localhost:4000/candidates -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"fullName":"Ana Ruiz","email":"ana@mail.com","phone":"+34600000000","yearsOfExperience":4,"skills":["TypeScript"],"englishLevel":"B2","seniority":"Semi-Senior","currentSalary":3000,"expectedSalary":3500,"availability":"1 month","location":"Valencia","remoteOnly":false,"status":"Active"}'
 ```
 

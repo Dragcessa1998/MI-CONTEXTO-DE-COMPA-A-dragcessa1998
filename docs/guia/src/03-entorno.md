@@ -75,7 +75,7 @@ Esta es la guía de directorios que importa:
 | Carpeta o archivo | Qué contiene |
 | --- | --- |
 | `src/` | Lógica de negocio compartida en TypeScript (Hito 2): tipos de dominio, motor de scoring, búsquedas y validaciones. Es la **fuente única** de la lógica y se importa vía el alias `@logic`. |
-| `uis/website/` | Web pública corporativa de Nexova en Next.js 14 (Hito 4), migrada desde la web estática del Hito 1. |
+| `uis/website/` | Web pública corporativa de Nexova en Next.js 16 (Hito 4), migrada desde la web estática del Hito 1. |
 | `uis/backoffice/` | Panel interno en Next.js: KPIs, pipeline de procesos y directorio de proveedores. Consume las APIs reales por HTTP. |
 | `uis/talent-pipeline-tracker/` | Tracker de candidatos (Hito 3) en Next.js sobre la API del curso. |
 | `services/api/` | Supplier Directory API: FastAPI + TinyDB + Pydantic, gestionada con `uv`. |
@@ -143,7 +143,7 @@ Cada aplicación de Node.js declara sus propias dependencias en su `package.json
 npm install
 ```
 
-Luego, entra en cada app o servicio de Node y repite la instalación. Las tres webs son Next.js 14 con React 18 y Tailwind; la talent-api es Express con TypeScript:
+Luego, entra en cada app o servicio de Node y repite la instalación. Las tres webs son Next.js 16 con React 18 y Tailwind; la talent-api es Express con TypeScript:
 
 ```bash
 npm install --prefix uis/website

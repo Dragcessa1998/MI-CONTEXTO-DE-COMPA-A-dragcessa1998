@@ -129,12 +129,12 @@ res = await fetch(`${API_URL}${path}`, {
 });
 ```
 
-Para que esa petición desde el navegador (que corre en el puerto :3000) llegue a la API (en :4000) hace falta CORS (*Cross-Origin Resource Sharing*, el mecanismo que autoriza peticiones entre orígenes distintos). La talent-api lo resuelve en `services/talent-api/src/index.ts` respondiendo a la petición previa de comprobación (*preflight*) con un `204`:
+En desarrollo, cuando navegador y API usan orígenes distintos, hace falta CORS (*Cross-Origin Resource Sharing*). La Talent API sólo devuelve un `204` al *preflight* si el origen está en `TALENT_API_CORS_ALLOWED_ORIGINS`; producción usa además el proxy same-origin `/talent-api`:
 
 ```ts
-res.header("Access-Control-Allow-Origin", "*");
+res.header("Access-Control-Allow-Origin", origin);
 res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-res.header("Access-Control-Allow-Headers", "Content-Type");
+res.header("Access-Control-Allow-Headers", "Authorization,Content-Type");
 if (req.method === "OPTIONS") return res.sendStatus(204);
 ```
 

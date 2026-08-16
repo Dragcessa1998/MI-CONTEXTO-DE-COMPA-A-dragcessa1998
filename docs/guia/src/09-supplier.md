@@ -31,18 +31,15 @@ app = FastAPI(
 )
 ```
 
-Justo debajo se añade el *middleware* de **CORS** (Cross-Origin Resource Sharing, intercambio de recursos entre orígenes). Un navegador, por seguridad, bloquea por defecto que una página de un origen (el backoffice en `http://localhost:3000`) llame a otro origen distinto (la API en `:8000`). El middleware de CORS le dice al navegador que esas llamadas están permitidas:
+Justo debajo se instala la configuración web defensiva, incluido **CORS** (Cross-Origin Resource Sharing, intercambio de recursos entre orígenes). Un navegador bloquea por defecto que una página de un origen llame a otro origen distinto. Nexova sólo autoriza los orígenes declarados en `CORS_ALLOWED_ORIGINS` y rechaza una configuración vacía o con comodín:
 
 ```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+from app_security import install_security_middleware
+
+install_security_middleware(app)
 ```
 
-Por último, `main.py` registra el *router* con todos los endpoints de proveedores (`app.include_router(suppliers_router)`) y expone un endpoint de salud, `GET /health`, que devuelve el estado y cuántos proveedores hay almacenados. Un endpoint de salud es una práctica habitual: permite comprobar de un vistazo que el servicio está vivo.
+La misma instalación añade hosts de confianza y cabeceras defensivas. Por último, `main.py` registra el *router* con todos los endpoints de proveedores (`app.include_router(suppliers_router)`) y expone un endpoint de salud, `GET /health`, que devuelve el estado y cuántos proveedores hay almacenados. Un endpoint de salud es una práctica habitual: permite comprobar de un vistazo que el servicio está vivo.
 
 ::: {.callout .note}
 **Nota:** un *router* en FastAPI es simplemente un grupo de rutas que se montan juntas bajo un prefijo común. En este proyecto, todas las rutas de proveedores viven en `routes/suppliers.py` bajo el prefijo `/suppliers`, y `main.py` las "incluye". Así el archivo principal queda corto y la lógica de cada recurso queda separada.

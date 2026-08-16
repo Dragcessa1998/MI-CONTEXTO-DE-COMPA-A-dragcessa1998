@@ -60,7 +60,7 @@ Una `interface` es un molde: dice que un `ScoredCandidate` siempre tiene un `can
 
 **React** es una biblioteca para construir interfaces a base de *componentes*: piezas reutilizables que combinan estructura y comportamiento. En lugar de escribir una página gigante, escribes un componente «Botón», uno «Tarjeta», uno «Formulario», y los ensamblas. *Renderizar* significa convertir esos componentes en el HTML que el navegador finalmente muestra.
 
-**Next.js** es un framework construido sobre React que añade lo que falta para una aplicación real: enrutado de páginas, optimizaciones y renderizado en el servidor. Nexova usa Next.js 14 con el **App Router**, su sistema moderno de rutas donde cada carpeta dentro de `app/` es una URL. En el backoffice, la carpeta `suppliers/page.tsx` se convierte automáticamente en la ruta `/suppliers`.
+**Next.js** es un framework construido sobre React que añade lo que falta para una aplicación real: enrutado de páginas, optimizaciones y renderizado en el servidor. Nexova usa Next.js 16 con el **App Router**, su sistema moderno de rutas donde cada carpeta dentro de `app/` es una URL. En el backoffice, la carpeta `suppliers/page.tsx` se convierte automáticamente en la ruta `/suppliers`.
 
 Un componente mínimo de React se escribe en un archivo `.tsx` (TypeScript + marcado) así:
 
@@ -178,16 +178,16 @@ TinyDB usa JSON para guardar en disco, las APIs lo usan para responder y la web 
 
 Cuando una página servida en una dirección intenta pedir datos a otra dirección distinta, el navegador lo bloquea por seguridad, salvo que el servidor lo autorice. **CORS** (Cross-Origin Resource Sharing, intercambio de recursos entre orígenes) es el mecanismo de esa autorización.
 
-En Nexova el backoffice corre en el puerto 3000 y la API de talento en el 4000: orígenes distintos. Por eso `services/talent-api/src/index.ts` declara las cabeceras CORS y responde a la petición previa (preflight) que el navegador envía con el método OPTIONS:
+En desarrollo, backoffice y Talent API pueden usar orígenes distintos. Por eso `services/talent-api/src/security.ts` compara el origen con una allowlist y sólo autoriza el *preflight* que el navegador envía con el método OPTIONS:
 
 ```ts
-res.header("Access-Control-Allow-Origin", "*");
+res.header("Access-Control-Allow-Origin", origin);
 res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
 if (req.method === "OPTIONS") return res.sendStatus(204);
 ```
 
 ::: {.callout .warning}
-**Aviso:** si una llamada al backend falla con un error de CORS en la consola del navegador, el problema casi nunca está en tu frontend, sino en que el servidor no ha autorizado tu origen. Revisa primero las cabeceras del backend.
+**Aviso:** nunca sustituyas la allowlist por `*`. Si una llamada falla con un error de CORS, comprueba el origen configurado y las cabeceras del backend.
 :::
 
 ## Git y GitHub: control de versiones

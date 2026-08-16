@@ -32,7 +32,7 @@
 - **APIs/Backend:** todo lo de servidor va en `/services` (desde el Hito 5).
 - **Web pública** → `uis/website`; **lógica interna/dashboards** → `uis/backoffice`, con **layouts separados**.
 - **Config por entorno:** variables vía `.env.local` (NO se commitea); cada app incluye `.env.example`.
-- **Desarrollo reproducible:** Docker Compose orquesta un contenedor UI (website + backoffice) y FastAPI; Next actúa como proxy same-origin hacia `http://backend:8000` en la red `nexova-dev`.
+- **Despliegue reproducible endurecido:** Docker Compose construye website+backoffice, FastAPI, Talent API y Qdrant; Next actúa como proxy same-origin. Sólo las UIs se enlazan a loopback para el reverse proxy; APIs/Qdrant quedan en la red interna. Las imágenes arrancan producción sin reload y como `nexova`/`node`, nunca root.
 - **Contrato de telemetría:** envelope JSON Schema 1.0.0 en `docs/telemetry/` con `requestId`, allowlists estrictas por evento, outbox para negocio y separación stream/batch por urgencia.
 - **Procesos nocturnos:** cron del sistema ejecuta `scripts/nightly_export.py` fuera de FastAPI. PostgreSQL separa `orchestration.job_runs` (lock/idempotencia/export) de `reporting.pipeline_runs` (ETL). `processing` es el único lock; el CSV es sólo backup y el pipeline lee `telemetry_events`.
 - **RAG comercial:** los documentos Nexova se fragmentan en `data/process/rag.py`, se vectorizan con `text-embedding-3-small` y se almacenan en la colección Qdrant `nexova_knowledge`. `data/pipelines/rag.py` mantiene separados retrieval y generación mediante Responses API (`gpt-5.6-luna` por defecto). La API y el backoffice sólo consumen `query()`; no duplican embeddings ni retrieval.
@@ -42,14 +42,15 @@
 - **RFP real-time / SSE:** el backend publica `rfp_ticket_created` justo después de persistir un ticket `analyzing`. `GET /api/rfps/events` reutiliza el JWT del backoffice, mantiene una cola por conexión, replay corto de 100 eventos y `Last-Event-ID`; la UI consume con `fetch`/`ReadableStream`, backoff 1→30 s, refetch sólo al recuperar y deduplicación por `ticket_id`.
 - **Chat WebSocket de soporte:** `/agent/ws/{session_id}` autentica el handshake con el JWT existente y vincula `session_id`, `user_id`, `client_id` y `agent_id=first_line_support`. `ChatHub` conserva historial y un pub/sub por sesión; el productor usa el routing/tools existentes y deltas reales de Responses API. Cancelar la task cierra el stream, marca el mensaje parcial `interrupted` y abre un turno nuevo; reconectar reenvía `session_snapshot`.
 - **Seguridad de IA / NIST:** todo punto HTTP que invoca modelos exige JWT y un rate limit por usuario+ruta. `agent/guardrails.py` normaliza y valida prompts directos, y `data/pipelines/rag.py` delimita, escapa y neutraliza contenido documental no confiable antes de pasarlo como datos separados de `instructions`. Los eventos de guardrail sólo conservan metadatos agregables, nunca prompts ni PII. La tool del agente sigue siendo read-only y el documento RFP final mantiene aprobación humana por cada departamento.
+- **Seguridad web / OWASP:** JWT incluye `iss`, `aud`, `jti`, expiración y rol. Talent API y RFP exigen `manager/admin`; el token WebSocket viaja como subprotocolo. CORS/hosts/cabeceras usan allowlists; Next 16.3.1 y las dependencias auditadas quedan sin findings. El baseline de host fija `nexova-deploy`, SSH por clave sin root, permisos separados y nftables 22/443.
 - **CONTEXT por hito:** `CONTEXT.md` se reemplaza con el contexto del hito actual (`content/contexts/<NN>/CONTEXT-nexova.es.md` del syllabus).
 
 ## Estado del stack por hito
 
 - **Hito 1** (web estática): HTML5 + Tailwind (Play CDN) + JS de validación — en la raíz.
 - **Hito 2** (`/src`): utilidades TS puras (colecciones, búsqueda lineal/binaria, scoring, agregaciones, validaciones). Verificación: `tsc --noEmit` + `tsx src/demo.ts`.
-- **Hito 3** (`uis/talent-pipeline-tracker`): Next.js 14 + React 18 sobre la API del curso `https://playground.4geeks.com/tracker/api/v1`. Filtros/búsqueda por query params; PATCH estado/etapa; notas CRUD; alta/edición.
-- **Hito 4** (`uis/website`, `uis/backoffice`): migración de la web a Next.js + app interna que **importa** la lógica del Hito 2.
+- **Hito 3** (`uis/talent-pipeline-tracker`): Next.js 16.3.1 + React 18 sobre la API del curso `https://playground.4geeks.com/tracker/api/v1`. Filtros/búsqueda por query params; PATCH estado/etapa; notas CRUD; alta/edición.
+- **Hito 4** (`uis/website`, `uis/backoffice`): web y app interna en Next.js 16.3.1; backoffice **importa** la lógica del Hito 2.
 
 ## Convenciones
 
