@@ -74,6 +74,11 @@ services/api/.venv/bin/python scripts/seed_incidents.py
 
 El panel necesita la API corriendo. En **dos terminales**:
 
+La ruta `/rfps` cubre ahora recepción y generación: tras completar el análisis,
+el botón **Generar propuesta** dispara el loop generador-evaluadores, muestra el
+borrador y el resultado estructurado por departamento, y distingue una evaluación
+superada de `needs_human_review` sin exponer valores crudos de estado.
+
 ```bash
 # Terminal 1 — API (Hito 5)
 cd services/talent-api

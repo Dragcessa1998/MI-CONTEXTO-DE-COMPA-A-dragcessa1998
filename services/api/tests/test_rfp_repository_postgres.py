@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 
 from data.pipelines.rfp_intake.models import IntakeResult
+from data.pipelines.rfp_intake.proposal import run_proposal_generation
 from rfp_repository import PostgresRfpRepository
 
 
@@ -112,6 +113,16 @@ def test_legacy_spanish_statuses_are_migrated() -> None:
         "Elena Vargas",
     }
     assert repository.list_tickets()[0]["ticket_id"] == ticket["ticket_id"]
+
+    repository.start_drafting(ticket["ticket_id"])
+    repository.mark_under_evaluation(ticket["ticket_id"])
+    repository.save_generation(ticket["ticket_id"], run_proposal_generation(persisted))
+    generated = repository.get_ticket(ticket["ticket_id"])
+    assert generated is not None
+    assert generated["status"] == "under_evaluation"
+    assert all(section["draft_content"] for section in generated["sections"])
+    assert all(section["evaluation_results"][-1]["overall_pass"] for section in generated["sections"])
+    assert all(section["generation_iteration"] == 1 for section in generated["sections"])
 
     with repository._connect() as connection:
         connection.execute("TRUNCATE rfp_tickets CASCADE")

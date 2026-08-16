@@ -109,6 +109,16 @@ uv run python seed.py
 | DELETE | `/suppliers/{id}` | Elimina; protegida |
 | GET | `/health` | Estado del servicio |
 
+## RFP: generación y evaluación de propuestas
+
+Después de que `POST /api/rfps` complete la recepción y deje el ticket en
+`intake_complete`, `POST /api/rfps/{ticket_id}/draft` inicia la Parte 2. El
+backend reutiliza metadatos y aspectos clave persistidos, genera una sección por
+departamento y ejecuta en paralelo los evaluadores de legibilidad, relevancia y
+cumplimiento. El detalle del ticket expone borradores, historial de evaluaciones
+y número de iteración. La arquitectura y ejemplos pass/fail están en
+`docs/rfp/RFP_RESPONSE_GENERATION.md`.
+
 ### Validaciones (Pydantic → 422 antes de tocar TinyDB)
 
 - `status` solo `active` / `suspended` · `monthly_rate` > 0 · `categories` ⊆ lista válida (mín. 1).

@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 
-from data.pipelines.rfp_intake import run_rfp_intake
+from data.pipelines.rfp_intake import run_proposal_generation, run_rfp_intake
 from rfp_repository import RfpRepository, get_rfp_repository
 from security import get_current_user
 
@@ -32,6 +32,17 @@ def repository_dependency() -> RfpRepository:
 def _run_background(ticket_id: str, raw_pdf_path: str, repository: RfpRepository) -> None:
     try:
         repository.save_result(ticket_id, run_rfp_intake(Path(raw_pdf_path)))
+    except Exception:
+        repository.mark_failed(ticket_id)
+
+
+def _run_drafting(ticket_id: str, repository: RfpRepository) -> None:
+    try:
+        ticket = repository.get_ticket(ticket_id)
+        if ticket is None:
+            raise KeyError("ticket inexistente")
+        repository.mark_under_evaluation(ticket_id)
+        repository.save_generation(ticket_id, run_proposal_generation(ticket))
     except Exception:
         repository.mark_failed(ticket_id)
 
@@ -71,6 +82,26 @@ def list_rfps(
     repository: Annotated[RfpRepository, Depends(repository_dependency)],
 ) -> list[dict[str, Any]]:
     return repository.list_tickets()
+
+
+@router.post("/{ticket_id}/draft", status_code=status.HTTP_202_ACCEPTED)
+def draft_rfp_response(
+    ticket_id: str,
+    background_tasks: BackgroundTasks,
+    repository: Annotated[RfpRepository, Depends(repository_dependency)],
+) -> dict[str, str]:
+    if repository.get_ticket(ticket_id) is None:
+        raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
+    try:
+        repository.start_drafting(ticket_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    background_tasks.add_task(_run_drafting, ticket_id, repository)
+    return {
+        "ticket_id": ticket_id,
+        "status": "drafting",
+        "status_url": f"/api/rfps/{ticket_id}",
+    }
 
 
 @router.get("/{ticket_id}")
