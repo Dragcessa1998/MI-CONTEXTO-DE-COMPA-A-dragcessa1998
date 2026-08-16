@@ -26,6 +26,7 @@ del curso: la web pública, la lógica de negocio, el panel interno y las APIs.
 | 3 — Talent Pipeline Tracker | `uis/talent-pipeline-tracker` (Next.js) | ✅ |
 | 4 — AI-driven Engineering | Monorepo + `uis/website` + `uis/backoffice` | ✅ |
 | Supplier Directory (Lightweight Storage API) | `services/api` (FastAPI) + página `/suppliers` | ✅ |
+| Sales Forecasting with Regression | Random Forest + evaluación temporal + rango P10–P90 | ✅ |
 
 Extras construidos sobre la base: **`services/talent-api`** (API de talento en Express/TS),
 la **integración en vivo** del backoffice con esa API y la **vista de procesos** (pipeline).
@@ -81,6 +82,24 @@ La **lógica de negocio** (tipos, scoring, validaciones) vive una sola vez en `s
 ## Quick start
 
 Cada pieza se levanta por separado (los puertos son los que esperan las demás).
+
+### Previsión mensual de ingresos
+
+El experimento usa exclusivamente el dataset oficial de Nexova, conserva los
+primeros ocho años para entrenamiento y los dos últimos para prueba, y genera
+modelo, métricas, predicciones y gráfico reproducibles en `data/eval/`:
+
+```bash
+uv sync --group dev
+uv run python scripts/train_sales_forecast.py
+uv run pytest -q
+```
+
+Se eligió Random Forest frente a XGBoost por el tamaño reducido (96 meses de
+entrenamiento), la explicabilidad para Finanzas y la posibilidad de mostrar la
+variabilidad entre árboles. La semilla es fija (`42`). La métrica operativa
+principal es RMSE en USD; MSE, PSI, Gini normalizado y el `K2 score` solicitado
+(definido explícitamente como R²) también se publican.
 
 ```bash
 # Lógica compartida (Hito 2) — typecheck y demo

@@ -1,0 +1,24 @@
+{
+  "k2_definition": "Course label operationalized as R\u00b2 coefficient of determination.",
+  "k2_score": 0.5179278599075872,
+  "mean_test_revenue_usd": 959363.2474999999,
+  "mse_percent_of_mean_revenue_squared": 0.390703183715836,
+  "mse_usd_squared": 3595945525.64925,
+  "normalized_gini": 0.893934426071582,
+  "prediction_band_coverage_percent": 58.333333333333336,
+  "psi_by_feature": {
+    "active_contracts": 6.515282790171433,
+    "avg_contract_value_usd": 1.4369763298698925,
+    "month_cos": 0.0,
+    "month_index": 12.33678111918624,
+    "month_sin": 0.0
+  },
+  "psi_revenue_train_vs_test": 8.160183598312226,
+  "rmse_percent_of_mean_revenue": 6.250625438432829,
+  "rmse_usd": 59966.2031952103,
+  "test_period": {
+    "from": "2024-01-01",
+    "months": 24,
+    "to": "2025-12-01"
+  }
+}

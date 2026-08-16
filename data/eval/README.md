@@ -6,3 +6,9 @@ This folder is for **evaluation and validation**: evaluation datasets, golden se
 - **Recommendation**: document each evaluation set (what it measures, how it was built, success criteria) and avoid sensitive data; use synthetic or anonymized data when needed.
 
 > _Spanish version: [README.es.md](./README.es.md)._
+
+## Nexova sales forecast
+
+Run `uv run python scripts/train_sales_forecast.py` from the repository root to
+reproduce the Random Forest model, JSON metrics, 24-month prediction CSV,
+technical summary and actual-vs-predicted chart stored in this directory.
