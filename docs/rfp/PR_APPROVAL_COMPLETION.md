@@ -27,6 +27,26 @@ Aprobaciones simuladas:
 3. El ticket converge de `waiting_for_approval` a `done` y almacena el Markdown
    final para Marcos Ibáñez.
 
+Documento final generado por el recorrido reproducible:
+
+```markdown
+# Propuesta Nexova para Vantex Retail Group, S.A.
+
+**Ticket:** e2e-vantex
+**Moneda:** EUR
+**Estado:** Aprobada por todos los departamentos activos
+
+## Selección de talento
+Requisitos cubiertos: búsqueda ejecutiva para 5 roles. El plazo comprometido es
+de al menos 15 días laborables y se aplica la garantía de satisfacción de 90 días.
+
+## Capacitación corporativa
+Requisitos cubiertos: capacitación de liderazgo para 40 participantes. El
+calendario y formato se cierran con el responsable del cliente.
+
+Documento consolidado para Marcos Ibáñez, Director de Ventas.
+```
+
 Reproducción:
 
 ```bash
