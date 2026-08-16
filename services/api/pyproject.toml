@@ -38,5 +38,5 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "models", "database", "seed", "rfp_repository"]
+py-modules = ["main", "models", "database", "seed", "rfp_repository", "rate_limit"]
 packages = ["agent", "routes"]

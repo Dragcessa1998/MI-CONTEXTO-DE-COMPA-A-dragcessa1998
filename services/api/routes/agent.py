@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from agent.graph import run_agent
+from agent.guardrails import PromptSecurityError, guardrail_events, validate_user_prompt
 from agent.trace_store import trace_store
+from rate_limit import enforce_model_rate_limit
+from security import get_current_user
 
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/agent", tags=["agent"])
+router = APIRouter(prefix="/agent", tags=["agent"], dependencies=[Depends(get_current_user)])
 
 
 class AgentQuery(BaseModel):
@@ -32,11 +35,13 @@ class TraceResponse(BaseModel):
     events: list[dict]
 
 
-@router.post("/query", response_model=AgentAnswer)
+@router.post("/query", response_model=AgentAnswer, dependencies=[Depends(enforce_model_rate_limit)])
 def ask_agent(payload: AgentQuery) -> AgentAnswer:
     try:
-        result = run_agent(payload.question)
+        result = run_agent(validate_user_prompt(payload.question, source="agent.query"))
         return AgentAnswer(run_id=result["run_id"], answer=result["answer"])
+    except PromptSecurityError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception:
         logger.exception("support_agent_query_failed")
         raise HTTPException(
@@ -51,3 +56,8 @@ def get_trace(run_id: str) -> TraceResponse:
     if trace is None:
         raise HTTPException(status_code=404, detail="La traza solicitada no existe.")
     return TraceResponse(**trace)
+
+
+@router.get("/security/summary")
+def get_guardrail_summary() -> dict[str, object]:
+    return guardrail_events.summary()

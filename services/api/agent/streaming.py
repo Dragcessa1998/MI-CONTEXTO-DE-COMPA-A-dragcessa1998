@@ -13,6 +13,7 @@ from agent.graph import (
     format_incident_suffix,
     select_route,
 )
+from agent.guardrails import validate_user_prompt
 from agent.tools import IncidentLookupInput, lookup_incident
 from data.pipelines.rag import NO_CONTEXT_ANSWER, generate_answer_stream, retrieve
 
@@ -41,7 +42,7 @@ async def _incident_answer(question: str) -> AsyncIterator[str]:
 async def stream_support_agent(question: str, _session_id: str) -> AsyncIterator[str]:
     """Misma selección RAG/tool; el tramo generativo usa deltas reales y cancelables."""
 
-    normalized = question.strip()
+    normalized = validate_user_prompt(question, source="agent.streaming")
     route = select_route(normalized)
     if route == "invalid":
         async for token in _fixed_tokens(EMPTY_QUESTION_ANSWER):
