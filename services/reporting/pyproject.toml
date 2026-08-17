@@ -1,0 +1,17 @@
+[project]
+name = "nexova-reporting"
+version = "1.0.0"
+description = "FastAPI routes for Nexova business reporting pipelines"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "nexova-pipelines",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["reporting"]
+package-dir = { reporting = "." }

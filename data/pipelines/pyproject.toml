@@ -1,0 +1,17 @@
+[project]
+name = "nexova-pipelines"
+version = "1.0.0"
+description = "Prefect pipelines for Nexova business reporting"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2,<4",
+    "prefect>=3,<4",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["nexova_pipelines"]
+package-dir = { nexova_pipelines = "." }

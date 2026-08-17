@@ -1,17 +1,37 @@
 [project]
 name = "nexova-supplier-api"
-version = "1.0.0"
-description = "Supplier Directory de Nexova — Lightweight Storage API (FastAPI + TinyDB + Pydantic)"
+version = "3.0.0"
+description = "API operativa de Nexova: JWT, proveedores e incidentes en TinyDB"
 requires-python = ">=3.11"
 dependencies = [
+    "email-validator>=2.2",
     "fastapi>=0.115",
+    "libpass[bcrypt]>=1.9",
+    "nexova-shared",
+    "python-jose[cryptography]>=3.3",
+    "python-multipart>=0.0.20",
     "uvicorn>=0.32",
     "tinydb>=4.8",
     "pydantic>=2.9",
+    "nexova-pipelines",
+    "nexova-reporting",
+    "nexova-telemetry",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27,<1",
+    "pytest>=8.3,<9",
 ]
 
 [project.scripts]
 seed = "seed:main"
+
+[tool.uv.sources]
+nexova-shared = { path = "../../packages/shared", editable = true }
+nexova-pipelines = { path = "../../data/pipelines", editable = true }
+nexova-reporting = { path = "../reporting", editable = true }
+nexova-telemetry = { path = "../telemetry", editable = true }
 
 [build-system]
 requires = ["setuptools>=68"]

@@ -22,6 +22,10 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 suppliers.db.json
+data/eval/pipeline_runs.local.json
+data/eval/pipeline_run_inputs.local.json
+data/eval/weekly_office_program_performance.local.json
+data/eval/weekly_performance.*.json
 
 # Variables de entorno
 .env
