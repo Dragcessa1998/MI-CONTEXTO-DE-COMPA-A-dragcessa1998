@@ -1,0 +1,101 @@
+{
+  "dataset": "data/raw/nexova_sales.csv",
+  "diagnosis": "overfitting",
+  "corrective_action": "Increase min_samples_leaf from 2 to 4\u20136, reduce max_depth from 8 to 5\u20136, and select those values with the same expanding-window validation; do not tune on 2024\u20132025.",
+  "cross_validation": {
+    "folds": 5,
+    "validation_mae_mean_usd": 37733.87367823605,
+    "validation_mae_std_usd": 6042.927976921077,
+    "validation_rmse_mean_usd": 47753.4738717256,
+    "validation_rmse_std_usd": 8205.739014997333,
+    "train_mae_mean_usd": 11879.15579052964,
+    "train_rmse_mean_usd": 16640.36569734881
+  },
+  "folds": [
+    {
+      "fold": 1,
+      "train_rows": 16,
+      "validation_rows": 16,
+      "train_from": "2016-01-01",
+      "train_to": "2017-04-01",
+      "validation_from": "2017-05-01",
+      "validation_to": "2018-08-01",
+      "train": {
+        "mae_usd": 19698.818306874153,
+        "rmse_usd": 29167.038403732025
+      },
+      "validation": {
+        "mae_usd": 31915.242613124043,
+        "rmse_usd": 42644.14541417624
+      }
+    },
+    {
+      "fold": 2,
+      "train_rows": 32,
+      "validation_rows": 16,
+      "train_from": "2016-01-01",
+      "train_to": "2018-08-01",
+      "validation_from": "2018-09-01",
+      "validation_to": "2019-12-01",
+      "train": {
+        "mae_usd": 10060.507786871827,
+        "rmse_usd": 14038.128128553692
+      },
+      "validation": {
+        "mae_usd": 33949.56016088601,
+        "rmse_usd": 43167.13338213054
+      }
+    },
+    {
+      "fold": 3,
+      "train_rows": 48,
+      "validation_rows": 16,
+      "train_from": "2016-01-01",
+      "train_to": "2019-12-01",
+      "validation_from": "2020-01-01",
+      "validation_to": "2021-04-01",
+      "train": {
+        "mae_usd": 9536.108729695257,
+        "rmse_usd": 12958.177599576537
+      },
+      "validation": {
+        "mae_usd": 46475.55671895248,
+        "rmse_usd": 62224.46207391857
+      }
+    },
+    {
+      "fold": 4,
+      "train_rows": 64,
+      "validation_rows": 16,
+      "train_from": "2016-01-01",
+      "train_to": "2021-04-01",
+      "validation_from": "2021-05-01",
+      "validation_to": "2022-08-01",
+      "train": {
+        "mae_usd": 10542.475144738437,
+        "rmse_usd": 13995.470752633739
+      },
+      "validation": {
+        "mae_usd": 41412.77397006481,
+        "rmse_usd": 46198.135760668316
+      }
+    },
+    {
+      "fold": 5,
+      "train_rows": 80,
+      "validation_rows": 16,
+      "train_from": "2016-01-01",
+      "train_to": "2022-08-01",
+      "validation_from": "2022-09-01",
+      "validation_to": "2023-12-01",
+      "train": {
+        "mae_usd": 9557.868984468538,
+        "rmse_usd": 13043.01360224806
+      },
+      "validation": {
+        "mae_usd": 34916.2349281529,
+        "rmse_usd": 44533.492727734316
+      }
+    }
+  ]
+}
