@@ -16,6 +16,8 @@ dependencies = [
     "nexova-pipelines",
     "nexova-reporting",
     "nexova-telemetry",
+    "celery[redis]>=5.5,<6",
+    "flower>=2.0,<3",
 ]
 
 [dependency-groups]

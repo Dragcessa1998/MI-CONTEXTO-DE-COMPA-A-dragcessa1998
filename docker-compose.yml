@@ -25,6 +25,7 @@ services:
       - nexova-dev
 
   backend:
+    image: nexova-development-api:latest
     build:
       context: .
       dockerfile: services/Dockerfile
@@ -32,17 +33,65 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in the root .env file}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      TASK_DLQ_DB: /var/lib/nexova/task_failures.sqlite3
     ports:
       - "${BACKEND_PORT}:8000"
     volumes:
-      - ./services:/workspace/services
-      - ./packages/shared:/workspace/packages/shared:ro
+      - reporting_data:/workspace/data/eval
+      - task_data:/var/lib/nexova
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
       interval: 5s
       timeout: 3s
       retries: 12
       start_period: 10s
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - nexova-dev
+
+  worker:
+    image: nexova-development-api:latest
+    command: ["celery", "-A", "celery_app:celery_app", "worker", "--loglevel=INFO", "--events"]
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      TASK_DLQ_DB: /var/lib/nexova/task_failures.sqlite3
+    volumes:
+      - reporting_data:/workspace/data/eval
+      - task_data:/var/lib/nexova
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - nexova-dev
+
+  flower:
+    image: nexova-development-api:latest
+    command: ["celery", "-A", "celery_app:celery_app", "flower", "--port=5555"]
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    networks:
+      - nexova-dev
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
     networks:
       - nexova-dev
 
@@ -53,3 +102,5 @@ networks:
 volumes:
   website_node_modules:
   backoffice_node_modules:
+  reporting_data:
+  task_data:

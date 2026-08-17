@@ -2,28 +2,24 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from nexova_pipelines.pipeline import (
     PipelineConflict,
     PipelineStoreError,
     get_latest_pipeline_run,
     get_weekly_office_program_performance,
     reserve_manual_run,
-    start_weekly_office_program_performance_run,
 )
 from pydantic import BaseModel, ConfigDict
-
-
-logger = logging.getLogger(__name__)
 
 # ``security`` belongs to the host API. Keeping this import at the HTTP boundary
 # avoids coupling the reusable pipeline package to authentication concerns.
 from security import get_current_user  # noqa: E402
 from auth_models import UserRecord  # noqa: E402
+from async_jobs import run_reporting_pipeline_task  # noqa: E402
 
 
 router = APIRouter(
@@ -37,19 +33,6 @@ class ManualRunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     week_start: date | None = None
-
-
-def _run_in_background(week_start: str, requested_by: str, run_id: str) -> None:
-    try:
-        start_weekly_office_program_performance_run(
-            week_start=week_start,
-            requested_by=requested_by,
-            run_id=run_id,
-        )
-    except Exception:
-        # The flow has already written safe FAILED metadata. Do not leak its
-        # payload or credentials through the ASGI background-task boundary.
-        logger.exception("reporting_pipeline_background_run_failed run_id=%s", run_id)
 
 
 @router.get("/pipeline-runs/latest")
@@ -66,7 +49,6 @@ def latest_pipeline_run() -> dict[str, Any]:
 @router.post("/pipeline-runs", status_code=status.HTTP_202_ACCEPTED)
 def create_pipeline_run(
     payload: ManualRunRequest,
-    background_tasks: BackgroundTasks,
     current_user: UserRecord = Depends(get_current_user),
 ) -> dict[str, str]:
     try:
@@ -84,13 +66,16 @@ def create_pipeline_run(
     except PipelineStoreError as exc:
         raise HTTPException(status_code=503, detail="Reporting data is unavailable") from exc
 
-    background_tasks.add_task(
-        _run_in_background,
-        week_start,
-        str(current_user.id),
-        run_id,
+    run_reporting_pipeline_task.apply_async(
+        args=[week_start, str(current_user.id), run_id],
+        task_id=run_id,
     )
-    return {"run_id": run_id, "week_start": week_start, "status": "PENDING"}
+    return {
+        "run_id": run_id,
+        "task_id": run_id,
+        "week_start": week_start,
+        "status": "PENDING",
+    }
 
 
 @router.get("/weekly-office-program-performance")
