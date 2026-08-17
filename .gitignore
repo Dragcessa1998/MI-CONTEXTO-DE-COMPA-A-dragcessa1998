@@ -27,6 +27,7 @@ data/eval/recall-results.json.tmp
 data/raw/rfps/
 data/checkpoints/
 data/final/rfps/
+data/agent_memory.sqlite3*
 
 # Variables de entorno
 .env
