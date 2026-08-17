@@ -14,6 +14,10 @@ sys.path.insert(0, str(API_DIR))
 sys.path.insert(0, str(REPO_ROOT))
 
 import database  # noqa: E402
+import agent.memory as agent_memory  # noqa: E402
+import routes.agent as agent_routes  # noqa: E402
+from agent.memory import MemoryCoordinator  # noqa: E402
+from agent.memory_store import SQLiteMemoryStore  # noqa: E402
 from main import app  # noqa: E402
 from routes.rfp_events import rfp_event_broker  # noqa: E402
 from agent.guardrails import guardrail_events  # noqa: E402
@@ -51,6 +55,17 @@ def isolated_ai_security_state():
     yield
     guardrail_events.clear()
     model_rate_limiter.reset()
+
+
+@pytest.fixture(autouse=True)
+def isolated_agent_memory(tmp_path, monkeypatch: pytest.MonkeyPatch):
+    store = SQLiteMemoryStore(tmp_path / "agent-memory.sqlite3")
+    coordinator = MemoryCoordinator(store)
+    monkeypatch.setattr(agent_memory, "memory_store", store)
+    monkeypatch.setattr(agent_memory, "memory_coordinator", coordinator)
+    monkeypatch.setattr(agent_routes, "memory_store", store)
+    monkeypatch.setattr(agent_routes, "memory_coordinator", coordinator)
+    return store
 
 
 @pytest.fixture
