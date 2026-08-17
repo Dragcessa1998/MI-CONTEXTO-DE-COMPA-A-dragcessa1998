@@ -50,6 +50,35 @@ uv run seed                          # carga los 15 proveedores del CONTEXT
 uv run uvicorn main:app --port 8000
 ```
 
+## Gestor de incidentes (`/incidents`)
+
+Vista autenticada contra la API FastAPI acumulativa:
+
+- Login JWT local y cierre de sesión; el token se conserva en `localStorage` y
+  también habilita las llamadas del directorio de proveedores.
+- Resumen independiente con totales por estado, categoría, origen y las cuatro
+  sedes exactas del CONTEXT de Nexova.
+- Formulario con validación inline, carga/disabled, confirmación, errores
+  legibles y sede resaltada cuando el origen es **Sede**.
+- Listado con filtros, estados loading/error/empty/data, reintento y avance del
+  ciclo de vida. Si un PATCH falla, restaura visualmente el estado anterior.
+
+La URL se configura con `NEXT_PUBLIC_PLATFORM_API_URL` (por defecto
+`http://localhost:8000`). El seeder histórico se ejecuta desde la raíz:
+
+```bash
+services/api/.venv/bin/python scripts/seed_incidents.py
+```
+
+## Reporting semanal (`/reporting`)
+
+Dashboard ejecutivo autenticado para Laura Mendoza y Elena Vargas. Consume
+`GET /reporting/weekly-office-program-performance` y muestra los cuatro KPI del
+pipeline de negocio: coste de materiales, kits entregados, frecuencia de
+faltantes y frecuencia de variaciones de coste. La semana ISO/UTC siempre está
+visible; los filtros de oficina y programa son locales y EUR/USD nunca se suman
+entre sí. El token JWT se comparte con la sesión iniciada en `/incidents`.
+
 ## Ejecutar (API + backoffice)
 
 El panel necesita la API corriendo. En **dos terminales**:

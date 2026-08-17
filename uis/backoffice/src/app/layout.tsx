@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import NavLinks from "@/components/NavLinks";
+import TelemetryProvider from "@/components/TelemetryProvider";
 
 export const metadata: Metadata = {
   title: "Nexova — Backoffice",
@@ -12,7 +13,8 @@ export default function BackofficeLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es">
       <body>
-        <div className="flex min-h-screen">
+        <TelemetryProvider>
+          <div className="flex min-h-screen">
           {/* Sidebar */}
           <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-slate-900 text-slate-200 md:flex">
             <div className="flex items-center gap-2 px-5 py-4">
@@ -25,7 +27,7 @@ export default function BackofficeLayout({ children }: { children: React.ReactNo
             <nav className="mt-2 flex-1 px-3" aria-label="Navegación del backoffice">
               <NavLinks />
             </nav>
-            <p className="px-5 py-4 text-xs text-slate-500">Operaciones de Selección</p>
+            <p className="px-5 py-4 text-xs text-slate-400">Operaciones de Selección</p>
           </aside>
 
           {/* Contenido */}
@@ -35,7 +37,8 @@ export default function BackofficeLayout({ children }: { children: React.ReactNo
             </header>
             <main className="flex-1 p-6">{children}</main>
           </div>
-        </div>
+          </div>
+        </TelemetryProvider>
       </body>
     </html>
   );

@@ -26,6 +26,7 @@ del curso: la web pública, la lógica de negocio, el panel interno y las APIs.
 | 3 — Talent Pipeline Tracker | `uis/talent-pipeline-tracker` (Next.js) | ✅ |
 | 4 — AI-driven Engineering | Monorepo + `uis/website` + `uis/backoffice` | ✅ |
 | Supplier Directory (Lightweight Storage API) | `services/api` (FastAPI) + página `/suppliers` | ✅ |
+| Data Pipeline Enhancement (Part 3) | Subflows Prefect + pruebas aisladas + `/reporting` | ✅ |
 
 Extras construidos sobre la base: **`services/talent-api`** (API de talento en Express/TS),
 la **integración en vivo** del backoffice con esa API y la **vista de procesos** (pipeline).
@@ -45,6 +46,7 @@ la **integración en vivo** del backoffice con esa API y la **vista de procesos*
    │  · /            (KPIs)       │                          │ TinyDB + Pydantic  :8000 │
    │  · /processes   (pipeline)   │ ───────────────────────▶ ├─────────────────────────┤
    │  · /suppliers   (directorio) │   /candidates /reports   │ services/talent-api      │
+   │  · /reporting   (KPI semana) │                          │                         │
    └──────────────────────────────┘                          │ Express + TS       :4000 │
                   :3000                                       └────────────┬────────────┘
                                                                            │ import @logic
@@ -67,7 +69,7 @@ La **lógica de negocio** (tipos, scoring, validaciones) vive una sola vez en `s
 | --- | --- |
 | `src/` | Lógica de negocio compartida en TypeScript (Hito 2): tipos de dominio, motor de scoring, búsquedas, validaciones, datos de ejemplo. **Fuente única**, se importa vía `@logic`. |
 | `uis/website/` | Web pública de Nexova en Next.js (Hito 4). |
-| `uis/backoffice/` | Panel interno (Next.js): KPIs/ranking, pipeline de procesos y directorio de proveedores. Consume las APIs en vivo. |
+| `uis/backoffice/` | Panel interno (Next.js): KPIs/ranking, procesos, proveedores y reporting semanal. Consume las APIs en vivo. |
 | `uis/talent-pipeline-tracker/` | Tracker de candidatos (Hito 3) sobre la API del curso. |
 | `services/api/` | **Supplier Directory API** — FastAPI + TinyDB + Pydantic, gestionada con `uv`. |
 | `services/talent-api/` | API de talento (candidatos/vacantes/procesos/reportes) en Express + TS. |

@@ -40,6 +40,7 @@ import {
   nextVacancyId,
   nextProcessId,
 } from "./store.js";
+import { isMalformedJson, sendError } from "./errors.js";
 
 const app = express();
 app.use(express.json());
@@ -136,7 +137,7 @@ app.get("/candidates", (req: Request, res: Response) => {
 // GET /candidates/:id  (búsqueda lineal del Hito 2)
 app.get("/candidates/:id", (req: Request, res: Response) => {
   const candidate = findCandidateById(candidates, req.params.id);
-  if (!candidate) return res.status(404).json({ error: "Candidato no encontrado" });
+  if (!candidate) return sendError(res, 404, "CANDIDATE_NOT_FOUND", "No encontramos esa candidatura.");
   res.json(candidate);
 });
 
@@ -144,7 +145,7 @@ app.get("/candidates/:id", (req: Request, res: Response) => {
 app.post("/candidates", (req: Request, res: Response) => {
   const candidate = buildCandidate(req.body ?? {}, nextCandidateId());
   const validation = validateCandidate(candidate);
-  if (!validation.valid) return res.status(400).json({ errors: validation.errors });
+  if (!validation.valid) return sendError(res, 400, "VALIDATION_ERROR", "Revisa los datos del candidato.", validation.errors);
   candidates.push(candidate);
   res.status(201).json(candidate);
 });
@@ -152,10 +153,10 @@ app.post("/candidates", (req: Request, res: Response) => {
 // PUT /candidates/:id  (reemplazo completo)
 app.put("/candidates/:id", (req: Request, res: Response) => {
   const index = candidates.findIndex((item) => item.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: "Candidato no encontrado" });
+  if (index === -1) return sendError(res, 404, "CANDIDATE_NOT_FOUND", "No encontramos esa candidatura.");
   const candidate = buildCandidate(req.body ?? {}, req.params.id);
   const validation = validateCandidate(candidate);
-  if (!validation.valid) return res.status(400).json({ errors: validation.errors });
+  if (!validation.valid) return sendError(res, 400, "VALIDATION_ERROR", "Revisa los datos del candidato.", validation.errors);
   candidates[index] = candidate;
   res.json(candidate);
 });
@@ -163,10 +164,10 @@ app.put("/candidates/:id", (req: Request, res: Response) => {
 // PATCH /candidates/:id  (actualización parcial)
 app.patch("/candidates/:id", (req: Request, res: Response) => {
   const index = candidates.findIndex((item) => item.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: "Candidato no encontrado" });
+  if (index === -1) return sendError(res, 404, "CANDIDATE_NOT_FOUND", "No encontramos esa candidatura.");
   const merged: Candidate = { ...candidates[index]!, ...(req.body ?? {}), id: req.params.id };
   const validation = validateCandidate(merged);
-  if (!validation.valid) return res.status(400).json({ errors: validation.errors });
+  if (!validation.valid) return sendError(res, 400, "VALIDATION_ERROR", "Revisa los datos del candidato.", validation.errors);
   candidates[index] = merged;
   res.json(merged);
 });
@@ -174,7 +175,7 @@ app.patch("/candidates/:id", (req: Request, res: Response) => {
 // DELETE /candidates/:id
 app.delete("/candidates/:id", (req: Request, res: Response) => {
   const index = candidates.findIndex((item) => item.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: "Candidato no encontrado" });
+  if (index === -1) return sendError(res, 404, "CANDIDATE_NOT_FOUND", "No encontramos esa candidatura.");
   candidates.splice(index, 1);
   res.status(204).end();
 });
@@ -187,21 +188,21 @@ app.get("/vacancies", (_req: Request, res: Response) => {
 
 app.get("/vacancies/:id", (req: Request, res: Response) => {
   const vacancy = vacancies.find((item) => item.id === req.params.id);
-  if (!vacancy) return res.status(404).json({ error: "Vacante no encontrada" });
+  if (!vacancy) return sendError(res, 404, "VACANCY_NOT_FOUND", "No encontramos esa vacante.");
   res.json(vacancy);
 });
 
 app.post("/vacancies", (req: Request, res: Response) => {
   const vacancy = buildVacancy(req.body ?? {}, nextVacancyId());
   const validation = validateVacancy(vacancy);
-  if (!validation.valid) return res.status(400).json({ errors: validation.errors });
+  if (!validation.valid) return sendError(res, 400, "VALIDATION_ERROR", "Revisa los datos de la vacante.", validation.errors);
   vacancies.push(vacancy);
   res.status(201).json(vacancy);
 });
 
 app.delete("/vacancies/:id", (req: Request, res: Response) => {
   const index = vacancies.findIndex((item) => item.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: "Vacante no encontrada" });
+  if (index === -1) return sendError(res, 404, "VACANCY_NOT_FOUND", "No encontramos esa vacante.");
   vacancies.splice(index, 1);
   res.status(204).end();
 });
@@ -209,7 +210,7 @@ app.delete("/vacancies/:id", (req: Request, res: Response) => {
 // GET /vacancies/:id/ranking  (motor de scoring del Hito 2)
 app.get("/vacancies/:id/ranking", (req: Request, res: Response) => {
   const vacancy = vacancies.find((item) => item.id === req.params.id);
-  if (!vacancy) return res.status(404).json({ error: "Vacante no encontrada" });
+  if (!vacancy) return sendError(res, 404, "VACANCY_NOT_FOUND", "No encontramos esa vacante.");
 
   const ranking = rankCandidatesForVacancy(candidates, vacancy).map((entry) => ({
     candidateId: entry.candidate.id,
@@ -240,7 +241,7 @@ app.post("/processes", (req: Request, res: Response) => {
   if (!PROCESS_STAGES.includes(body.stage as ProcessStage)) {
     errors.push("stage no es una etapa válida");
   }
-  if (errors.length > 0) return res.status(400).json({ errors });
+  if (errors.length > 0) return sendError(res, 400, "VALIDATION_ERROR", "Revisa los datos del proceso.", errors);
 
   const now = new Date();
   const process: SelectionProcess = {
@@ -260,11 +261,11 @@ app.post("/processes", (req: Request, res: Response) => {
 // PATCH /processes/:id  (avanzar etapa / actualizar score o notas)
 app.patch("/processes/:id", (req: Request, res: Response) => {
   const index = processes.findIndex((item) => item.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: "Proceso no encontrado" });
+  if (index === -1) return sendError(res, 404, "PROCESS_NOT_FOUND", "No encontramos ese proceso.");
 
   const body = req.body ?? {};
   if (body.stage !== undefined && !PROCESS_STAGES.includes(body.stage as ProcessStage)) {
-    return res.status(400).json({ errors: ["stage no es una etapa válida"] });
+    return sendError(res, 400, "VALIDATION_ERROR", "Revisa la etapa del proceso.", ["La etapa seleccionada no es válida."]);
   }
 
   const current = processes[index]!;
@@ -300,12 +301,17 @@ app.get("/reports/fill-rate", (_req: Request, res: Response) => {
 
 // ---------- 404 y manejo de errores ----------
 app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: "Ruta no encontrada" });
+  sendError(res, 404, "ROUTE_NOT_FOUND", "La ruta solicitada no existe.");
 });
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  const message = err instanceof Error ? err.message : "Error interno del servidor";
-  res.status(500).json({ error: message });
+  if (isMalformedJson(err)) {
+    sendError(res, 400, "INVALID_JSON", "El cuerpo de la petición no contiene JSON válido.");
+    return;
+  }
+  // El detalle se conserva únicamente en el proceso/observabilidad; nunca se
+  // serializa porque puede contener rutas, credenciales o datos personales.
+  sendError(res, 500, "INTERNAL_ERROR", "No pudimos completar la operación. Inténtalo de nuevo.");
 });
 
 app.listen(PORT, () => {

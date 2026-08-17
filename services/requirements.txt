@@ -1,0 +1,29 @@
+-e ../packages/shared
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+bcrypt==5.0.0
+cffi==2.1.1; platform_python_implementation != "PyPy"
+click==8.4.1
+colorama==0.4.6; sys_platform == "win32"
+cryptography==50.0.0
+dnspython==2.8.0
+ecdsa==0.19.2
+email-validator==2.3.0
+fastapi==0.136.3
+h11==0.16.0
+idna==3.18
+libpass==1.9.3
+pyasn1==0.6.4
+pycparser==3.0; implementation_name != "PyPy" and platform_python_implementation != "PyPy"
+pydantic==2.13.4
+pydantic-core==2.46.4
+python-jose==3.5.0
+python-multipart==0.0.32
+rsa==4.9.1
+six==1.17.0
+starlette==1.3.0
+tinydb==4.8.2
+typing-extensions==4.15.0
+typing-inspection==0.4.2
+uvicorn==0.49.0
