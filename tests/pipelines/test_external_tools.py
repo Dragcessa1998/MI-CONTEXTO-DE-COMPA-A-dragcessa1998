@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from agent import graph as support_graph
-from agent.tools import IncidentLookupResult
+from agent.contracts import IncidentLookupResult
 from agent.trace_store import trace_store
 
 
@@ -31,7 +31,7 @@ def test_ticket_question_routes_only_to_real_incident_tool(monkeypatch) -> None:
         "retrieve",
         lambda _question: (_ for _ in ()).throw(AssertionError("RAG must not run")),
     )
-    monkeypatch.setattr(support_graph, "lookup_incident", lambda request: _ticket_result(request.ticket_id))
+    monkeypatch.setattr(support_graph, "lookup_incident_via_mcp", lambda ticket_id: _ticket_result(ticket_id))
 
     result = support_graph.run_agent("¿En qué estado está el ticket 42?", run_id="tool-only")
 
@@ -49,8 +49,8 @@ def test_policy_question_routes_only_to_rag(monkeypatch) -> None:
     monkeypatch.setattr(support_graph, "generate_answer", lambda _question, _context: "El plazo se presenta como promedio.")
     monkeypatch.setattr(
         support_graph,
-        "lookup_incident",
-        lambda _request: (_ for _ in ()).throw(AssertionError("tool must not run")),
+        "lookup_incident_via_mcp",
+        lambda _ticket_id: (_ for _ in ()).throw(AssertionError("tool must not run")),
     )
 
     result = support_graph.run_agent("¿Cuál es el SLA de headhunting?", run_id="rag-only")
@@ -66,9 +66,9 @@ def test_policy_question_routes_only_to_rag(monkeypatch) -> None:
 def test_tool_failure_has_honest_fallback(monkeypatch) -> None:
     monkeypatch.setattr(
         support_graph,
-        "lookup_incident",
-        lambda request: IncidentLookupResult(
-            ticket_id=request.ticket_id,
+        "lookup_incident_via_mcp",
+        lambda ticket_id: IncidentLookupResult(
+            ticket_id=ticket_id,
             found=False,
             error="timeout",
         ),
@@ -84,7 +84,7 @@ def test_tool_failure_has_honest_fallback(monkeypatch) -> None:
 def test_combined_question_traces_rag_then_tool(monkeypatch) -> None:
     monkeypatch.setattr(support_graph, "retrieve", lambda _question: [{"text": "SLA de 24 horas"}])
     monkeypatch.setattr(support_graph, "generate_answer", lambda *_args: "El SLA aplicable es de 24 horas.")
-    monkeypatch.setattr(support_graph, "lookup_incident", lambda request: _ticket_result(request.ticket_id))
+    monkeypatch.setattr(support_graph, "lookup_incident_via_mcp", lambda ticket_id: _ticket_result(ticket_id))
 
     result = support_graph.run_agent(
         "¿Cuál es el SLA y en qué estado está el ticket 42?",
