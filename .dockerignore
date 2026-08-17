@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/.next
+**/.env*
+**/*.log
+**/.DS_Store
+**/*.tsbuildinfo
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+**/suppliers.db.json
+data/qdrant
+data/raw/*.csv
+services/api/tests

@@ -1,0 +1,75 @@
+name: nexova-development
+
+services:
+  ui:
+    build:
+      context: .
+      dockerfile: uis/Dockerfile
+    command: ["/workspace/uis/start.sh"]
+    environment:
+      PLATFORM_API_INTERNAL_URL: ${PLATFORM_API_INTERNAL_URL}
+      NEXT_PUBLIC_PLATFORM_API_URL: ${NEXT_PUBLIC_PLATFORM_API_URL}
+      NEXT_PUBLIC_SUPPLIERS_API_URL: ${NEXT_PUBLIC_SUPPLIERS_API_URL}
+    ports:
+      - "${WEBSITE_PORT}:3000"
+      - "${BACKOFFICE_PORT}:3001"
+    volumes:
+      - ./uis:/workspace/uis
+      - ./src:/workspace/src:ro
+      - website_node_modules:/workspace/uis/website/node_modules
+      - backoffice_node_modules:/workspace/uis/backoffice/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - nexova-dev
+
+  backend:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in the root .env file}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Define OPENAI_API_KEY in the root .env file}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_GENERATION_MODEL: ${OPENAI_GENERATION_MODEL:-gpt-5.6-luna}
+      RAG_MIN_SCORE: ${RAG_MIN_SCORE:-0.35}
+      QDRANT_URL: http://qdrant:6333
+    ports:
+      - "${BACKEND_PORT}:8000"
+    volumes:
+      - ./services:/workspace/services
+      - ./packages/shared:/workspace/packages/shared:ro
+      - ./data:/workspace/data
+      - ./docs/company-knowledge-base:/workspace/docs/company-knowledge-base:ro
+    depends_on:
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - nexova-dev
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - nexova-dev
+
+networks:
+  nexova-dev:
+    name: nexova-dev
+
+volumes:
+  website_node_modules:
+  backoffice_node_modules:
+  qdrant_data:

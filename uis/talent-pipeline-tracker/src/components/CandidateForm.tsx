@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createRecord, getRecord, updateRecord } from "@/lib/api";
+import { createRecord, getRecord, updateRecord, TrackerApiError } from "@/lib/api";
 import type { RecordCreateInput } from "@/types/tracker";
 import { LoadingState, ErrorState } from "./ui";
 
@@ -90,7 +90,7 @@ export default function CandidateForm({ mode, recordId }: CandidateFormProps) {
         cv_url: record.cv_url ?? "",
       });
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "No se pudo cargar la candidatura");
+      setLoadError(err instanceof TrackerApiError ? err.message : "No se pudo cargar la candidatura.");
     } finally {
       setLoadingInitial(false);
     }
@@ -131,7 +131,8 @@ export default function CandidateForm({ mode, recordId }: CandidateFormProps) {
         router.push(`/candidates/${recordId}`);
       }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "No se pudo guardar la candidatura");
+      setSubmitError(err instanceof TrackerApiError ? err.message : "No se pudo guardar la candidatura.");
+    } finally {
       setSubmitting(false);
     }
   }
@@ -231,9 +232,10 @@ export default function CandidateForm({ mode, recordId }: CandidateFormProps) {
         </FormField>
 
         {submitError && (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {submitError}
-          </p>
+          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p>{submitError}</p>
+            <p className="mt-1 text-xs">Corrige los datos si es necesario y vuelve a pulsar “Guardar”.</p>
+          </div>
         )}
 
         <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row-reverse">
