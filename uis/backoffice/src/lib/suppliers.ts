@@ -7,6 +7,7 @@
  */
 
 import { ApiError } from "@/lib/api";
+import { SESSION_TOKEN_KEY } from "@/lib/incidents";
 
 const SUPPLIERS_API_URL = process.env.NEXT_PUBLIC_SUPPLIERS_API_URL ?? "http://localhost:8000";
 
@@ -78,7 +79,7 @@ export type SupplierInput = Omit<Supplier, "id" | "rate_updated_at">;
 
 /** Convierte el cuerpo de error de FastAPI en un mensaje legible.
  *  422 → {"detail": [{loc, msg, ...}]} · 404 → {"detail": "..."} */
-function extractFastApiError(body: unknown): string | null {
+export function extractFastApiError(body: unknown): string | null {
   if (!body || typeof body !== "object") return null;
   const detail = (body as { detail?: unknown }).detail;
   if (typeof detail === "string") return detail;
@@ -87,7 +88,12 @@ function extractFastApiError(body: unknown): string | null {
       .map((item) => {
         const entry = item as { loc?: unknown[]; msg?: string };
         const field = Array.isArray(entry.loc) ? String(entry.loc[entry.loc.length - 1]) : "";
-        const message = (entry.msg ?? "").replace(/^Value error, /, "");
+        const rawMessage = (entry.msg ?? "").replace(/^Value error, /, "");
+        const message = rawMessage === "Field required"
+          ? "Este campo es obligatorio"
+          : rawMessage.includes("valid number")
+            ? "Debe ser un número válido"
+            : rawMessage;
         return field && field !== "body" ? `${field}: ${message}` : message;
       })
       .join(" · ");
@@ -97,16 +103,19 @@ function extractFastApiError(body: unknown): string | null {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
+  const token = typeof window === "undefined" ? "" : window.localStorage.getItem(SESSION_TOKEN_KEY) ?? "";
   try {
     res = await fetch(`${SUPPLIERS_API_URL}${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init?.headers ?? {}),
+      },
       cache: "no-store",
     });
   } catch {
-    throw new ApiError(
-      `No se pudo conectar con la Supplier API en ${SUPPLIERS_API_URL}. ¿Está arrancada? (cd services/api && uv run uvicorn main:app --port 8000)`,
-    );
+    throw new ApiError("No se pudo conectar con el directorio de proveedores.");
   }
 
   let body: unknown = null;
@@ -117,8 +126,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    throw new ApiError(extractFastApiError(body) ?? `Error ${res.status} al llamar a ${path}`, res.status);
+    const message = res.status === 401
+      ? "Tu sesión no es válida. Inicia sesión desde el gestor de incidentes y vuelve a intentarlo."
+      : res.status === 403
+        ? "No tienes permiso para realizar esta acción."
+        : res.status >= 500
+          ? "El directorio no pudo completar la operación. Reintenta en unos instantes."
+          : extractFastApiError(body) ?? "Revisa los datos enviados e inténtalo de nuevo.";
+    throw new ApiError(message, res.status);
   }
+  if (body === null) throw new ApiError("El directorio devolvió una respuesta ilegible. Reintenta la operación.");
   return body as T;
 }
 

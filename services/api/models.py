@@ -10,7 +10,23 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+# El hito de inventario mantiene sus modelos ORM en un módulo dedicado para no
+# mezclar contratos históricos de proveedores con tablas SQL. Se reexportan aquí
+# para conservar la ruta `models.py` pedida por la rúbrica del monorepo.
+from inventory_models import Asset, AssetEntry, AssetExit
+
+__all__ = [
+    "Asset",
+    "AssetEntry",
+    "AssetExit",
+    "SupplierIn",
+    "SupplierOut",
+    "SupplierStatus",
+    "RateUpdate",
+    "StatusUpdate",
+]
 
 # Categorías válidas (lista literal del CONTEXT).
 VALID_CATEGORIES = [
@@ -39,6 +55,8 @@ class SupplierStatus(str, Enum):
 class SupplierIn(BaseModel):
     """Modelo de ENTRADA: lo que el cliente envía. `rate_updated_at` NO se acepta
     aquí porque lo genera el sistema (ver SupplierOut)."""
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1, description="Nombre comercial del proveedor o plataforma")
     country: Literal["Spain", "USA"] = Field(description='País del contrato activo: "Spain" o "USA"')
@@ -105,10 +123,14 @@ class SupplierOut(SupplierIn):
 class RateUpdate(BaseModel):
     """Cuerpo de PATCH /suppliers/{id}/rate — la tarifa debe ser > 0 (y finita)."""
 
+    model_config = ConfigDict(extra="forbid")
+
     monthly_rate: float = Field(gt=0, allow_inf_nan=False)
 
 
 class StatusUpdate(BaseModel):
     """Cuerpo de PATCH /suppliers/{id}/status — solo "active" o "suspended"."""
+
+    model_config = ConfigDict(extra="forbid")
 
     status: SupplierStatus

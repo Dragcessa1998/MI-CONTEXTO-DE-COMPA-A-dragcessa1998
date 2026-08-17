@@ -7,7 +7,10 @@ proveedor ya existe (por nombre) no se duplica.
 """
 
 from datetime import datetime, timezone
+from json import JSONDecodeError
+import sys
 
+from pydantic import ValidationError
 from tinydb import Query
 
 from database import suppliers_table
@@ -174,29 +177,47 @@ SUPPLIERS_SEED = [
 ]
 
 
-def main() -> None:
+def main() -> int:
     """Carga los proveedores del CONTEXT en TinyDB sin crear duplicados."""
-    table = suppliers_table()
+    try:
+        table = suppliers_table()
+    except (OSError, JSONDecodeError):
+        print("No se pudo abrir la base local de proveedores.", file=sys.stderr)
+        return 1
     supplier_query = Query()
 
     inserted = 0
     skipped = 0
     for raw in SUPPLIERS_SEED:
         # Validar con el mismo modelo de la API: el seeder no inserta nada inválido.
-        supplier = SupplierIn(**raw)
-        if table.contains(supplier_query.name == supplier.name):
-            skipped += 1
-            continue
-        record = supplier.model_dump()
-        record["rate_updated_at"] = datetime.now(timezone.utc).isoformat()
-        table.insert(record)
-        inserted += 1
+        try:
+            supplier = SupplierIn(**raw)
+        except ValidationError:
+            print("El seed contiene un proveedor inválido; no se modificó ese registro.", file=sys.stderr)
+            return 1
+        try:
+            if table.contains(supplier_query.name == supplier.name):
+                skipped += 1
+                continue
+            record = supplier.model_dump()
+            record["rate_updated_at"] = datetime.now(timezone.utc).isoformat()
+            table.insert(record)
+            inserted += 1
+        except (OSError, JSONDecodeError):
+            print("No se pudo guardar el seed en la base local de proveedores.", file=sys.stderr)
+            return 1
 
     print(f"Seeder del directorio de proveedores de Nexova")
     print(f"  Insertados: {inserted}")
     print(f"  Omitidos (ya existían): {skipped}")
-    print(f"  Total en la base de datos: {len(table)}")
+    try:
+        total = len(table)
+    except (OSError, JSONDecodeError):
+        print("No se pudo verificar el total de proveedores guardados.", file=sys.stderr)
+        return 1
+    print(f"  Total en la base de datos: {total}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -68,14 +68,34 @@ export interface ProcessDto {
   updatedAt: string;
 }
 
-/** Extrae un mensaje legible del cuerpo de error de la API ({errors} o {error}). */
-function extractError(body: unknown): string | null {
+/** Extrae solo mensajes públicos del contrato de error de la API. */
+export function extractError(body: unknown): string | null {
   if (body && typeof body === "object") {
-    const b = body as { errors?: unknown; error?: unknown };
+    const b = body as {
+      errors?: unknown;
+      error?: unknown;
+    };
+    if (b.error && typeof b.error === "object") {
+      const structured = b.error as { message?: unknown; details?: unknown };
+      const message = typeof structured.message === "string" ? structured.message : null;
+      const details = Array.isArray(structured.details)
+        ? structured.details.filter((item): item is string => typeof item === "string")
+        : [];
+      return [message, ...details].filter(Boolean).join(" · ") || null;
+    }
     if (Array.isArray(b.errors)) return b.errors.join(" · ");
     if (typeof b.error === "string") return b.error;
   }
   return null;
+}
+
+export function safeHttpMessage(status: number): string {
+  if (status === 400 || status === 422) return "Revisa los datos enviados e inténtalo de nuevo.";
+  if (status === 401) return "Tu sesión no es válida. Inicia sesión de nuevo.";
+  if (status === 403) return "No tienes permiso para realizar esta acción.";
+  if (status === 404) return "No encontramos el recurso solicitado.";
+  if (status === 409) return "Los datos entran en conflicto con un registro existente.";
+  return "El servicio no pudo completar la operación. Reintenta en unos instantes.";
 }
 
 /** Realiza una petición a la API y normaliza errores de red y de negocio. */
@@ -88,9 +108,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       cache: "no-store",
     });
   } catch {
-    throw new ApiError(
-      `No se pudo conectar con la API en ${API_URL}. ¿Está arrancada? (cd services/talent-api && npm run dev)`,
-    );
+    throw new ApiError("No se pudo conectar con el servicio de talento.");
   }
 
   if (res.status === 204) {
@@ -105,9 +123,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    throw new ApiError(extractError(body) ?? `Error ${res.status} al llamar a ${path}`, res.status);
+    const contractedMessage = res.status < 500 ? extractError(body) : null;
+    throw new ApiError(contractedMessage ?? safeHttpMessage(res.status), res.status);
   }
 
+  if (body === null) {
+    throw new ApiError("El servicio devolvió una respuesta que no se pudo leer. Reintenta la operación.");
+  }
   return body as T;
 }
 
