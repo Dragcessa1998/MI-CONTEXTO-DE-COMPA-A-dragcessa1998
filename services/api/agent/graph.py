@@ -10,7 +10,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from data.pipelines.rag import NO_CONTEXT_ANSWER, generate_answer, retrieve
-from agent.tools import IncidentLookupInput, lookup_incident
+from agent.mcp_client import lookup_incident_via_mcp
 from agent.trace_store import trace_store
 
 
@@ -126,7 +126,7 @@ def route_after_generation(state: AgentState) -> Literal["lookup_incident", "com
 
 
 def lookup_incident_node(state: AgentState) -> dict[str, Any]:
-    result = lookup_incident(IncidentLookupInput(ticket_id=state["ticket_id"]))
+    result = lookup_incident_via_mcp(state["ticket_id"])
     output: dict[str, Any] = {
         "incident": result.model_dump(mode="json"),
         "route": "combine" if state.get("rag_answer") else "tool_answer",

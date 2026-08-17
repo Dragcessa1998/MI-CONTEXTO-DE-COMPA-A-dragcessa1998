@@ -14,7 +14,7 @@ from agent.graph import (
     select_route,
 )
 from agent.guardrails import validate_user_prompt
-from agent.tools import IncidentLookupInput, lookup_incident
+from agent.mcp_client import lookup_incident_via_mcp_async
 from data.pipelines.rag import NO_CONTEXT_ANSWER, generate_answer_stream, retrieve
 
 
@@ -33,7 +33,7 @@ async def _incident_answer(question: str) -> AsyncIterator[str]:
         async for token in _fixed_tokens("Indica el número del ticket que quieres consultar."):
             yield token
         return
-    result = await asyncio.to_thread(lookup_incident, IncidentLookupInput(ticket_id=int(match.group(1))))
+    result = await lookup_incident_via_mcp_async(int(match.group(1)))
     answer = format_incident_answer(result.model_dump(mode="json")) if result.found else INCIDENT_FALLBACK
     async for token in _fixed_tokens(answer):
         yield token
@@ -71,10 +71,7 @@ async def stream_support_agent(question: str, _session_id: str) -> AsyncIterator
         if match is None:
             suffix = "\n\nIndica el número del ticket que quieres consultar."
         else:
-            result = await asyncio.to_thread(
-                lookup_incident,
-                IncidentLookupInput(ticket_id=int(match.group(1))),
-            )
+            result = await lookup_incident_via_mcp_async(int(match.group(1)))
             suffix = format_incident_suffix(result.model_dump(mode="json")) if result.found else f"\n\n{INCIDENT_FALLBACK}"
         async for token in _fixed_tokens(suffix):
             yield token
