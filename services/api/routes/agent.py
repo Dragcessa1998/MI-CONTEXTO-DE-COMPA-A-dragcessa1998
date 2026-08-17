@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import logging
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from agent.graph import run_agent
-from agent.guardrails import PromptSecurityError, guardrail_events, validate_user_prompt
+from agent.guardrails import (
+    OutputSecurityError,
+    PromptSecurityError,
+    SAFE_OUTPUT_FALLBACK,
+    evaluate_support_input,
+    guardrail_events,
+    validate_agent_output,
+)
 from agent.memory import memory_coordinator, memory_store
 from agent.trace_store import trace_store
 from auth_models import UserRecord
@@ -48,12 +56,41 @@ def ask_agent(
     current_user: UserRecord = Depends(get_current_user),
 ) -> AgentAnswer:
     try:
-        question = validate_user_prompt(payload.question, source="agent.query")
         conversation_id = payload.conversation_id or f"support-user-{current_user.id}"
+        guard = evaluate_support_input(payload.question, source="agent.query")
+        if not guard.proceed:
+            pending = memory_store.pending(conversation_id)
+            if pending is not None:
+                guarded_run_id = f"guard_{uuid4().hex}"
+                resolved = memory_coordinator.handle_turn(
+                    conversation_id=conversation_id,
+                    user_id=current_user.id,
+                    message=guard.normalized,
+                    answer_factory=lambda _message: {
+                        "run_id": guarded_run_id,
+                        "answer": guard.response or SAFE_OUTPUT_FALLBACK,
+                    },
+                )
+                if guard.category == "jailbreak":
+                    raise PromptSecurityError(guard.response or "Solicitud bloqueada por seguridad.")
+                return AgentAnswer(
+                    run_id=resolved.run_id,
+                    conversation_id=resolved.conversation_id,
+                    answer=resolved.answer,
+                    memory_decision=resolved.memory_decision,
+                    recalled_memories=[entry.content for entry in resolved.recalled_memories],
+                )
+            if guard.category == "jailbreak":
+                raise PromptSecurityError(guard.response or "Solicitud bloqueada por seguridad.")
+            return AgentAnswer(
+                run_id=f"guard_{uuid4().hex}",
+                conversation_id=conversation_id,
+                answer=guard.response or SAFE_OUTPUT_FALLBACK,
+            )
         result = memory_coordinator.handle_turn(
             conversation_id=conversation_id,
             user_id=current_user.id,
-            message=question,
+            message=guard.normalized,
             answer_factory=run_agent,
         )
         proposal = None
@@ -68,13 +105,23 @@ def ask_agent(
         return AgentAnswer(
             run_id=result.run_id,
             conversation_id=result.conversation_id,
-            answer=result.answer,
+            answer=validate_agent_output(
+                result.answer,
+                source="agent.query.output",
+                authenticated_client_id=f"user-{current_user.id}",
+            ),
             memory_proposal=proposal,
             memory_decision=result.memory_decision,
             recalled_memories=[entry.content for entry in result.recalled_memories],
         )
     except PromptSecurityError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except OutputSecurityError:
+        return AgentAnswer(
+            run_id=f"guard_{uuid4().hex}",
+            conversation_id=payload.conversation_id or f"support-user-{current_user.id}",
+            answer=SAFE_OUTPUT_FALLBACK,
+        )
     except Exception:
         logger.exception("support_agent_query_failed")
         raise HTTPException(
