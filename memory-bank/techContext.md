@@ -30,6 +30,9 @@
 - **Frontend:** **Next.js (App Router) + React + Tailwind CSS**. Estado a nivel de componente con hooks; sin librerías externas de estado (Redux/Zustand) salvo justificación.
 - **Lógica de negocio:** vive una sola vez en `/src` (Hito 2: scoring/matching de candidatos). Las apps la **importan**, no la copian (evita duplicación).
 - **APIs/Backend:** todo lo de servidor va en `/services` (desde el Hito 5).
+- **ML tabular:** Python gestionado con `uv`; Pandas/NumPy, scikit-learn y
+  Matplotlib. Los experimentos reproducibles viven en `scripts/`, los datasets
+  oficiales en `data/raw/` y sus métricas/modelos/gráficos en `data/eval/`.
 - **Web pública** → `uis/website`; **lógica interna/dashboards** → `uis/backoffice`, con **layouts separados**.
 - **Config por entorno:** variables vía `.env.local` (NO se commitea); cada app incluye `.env.example`.
 - **CONTEXT por hito:** `CONTEXT.md` se reemplaza con el contexto del hito actual (`content/contexts/<NN>/CONTEXT-nexova.es.md` del syllabus).
@@ -40,6 +43,8 @@
 - **Hito 2** (`/src`): utilidades TS puras (colecciones, búsqueda lineal/binaria, scoring, agregaciones, validaciones). Verificación: `tsc --noEmit` + `tsx src/demo.ts`.
 - **Hito 3** (`uis/talent-pipeline-tracker`): Next.js 14 + React 18 sobre la API del curso `https://playground.4geeks.com/tracker/api/v1`. Filtros/búsqueda por query params; PATCH estado/etapa; notas CRUD; alta/edición.
 - **Hito 4** (`uis/website`, `uis/backoffice`): migración de la web a Next.js + app interna que **importa** la lógica del Hito 2.
+- **Sales forecasting** (`scripts/train_sales_forecast.py`): Random Forest con
+  corte temporal 8/2 años, semilla 42 y artefactos reproducibles en `data/eval`.
 
 ## Convenciones
 
