@@ -20,12 +20,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from database import suppliers_table
+from routes.auth import router as auth_router
+from routes.profiles import router as profiles_router
 from routes.suppliers import router as suppliers_router
+from routes.users import router as users_router
 
 app = FastAPI(
-    title="Nexova — Supplier Directory API",
-    description="Directorio de proveedores: fuente única de verdad accesible vía API.",
-    version="1.0.0",
+    title="Nexova — Authenticated Supplier API",
+    description="Directorio de proveedores protegido con usuarios y perfiles TinyDB y JWT.",
+    version="2.0.0",
 )
 
 # CORS: el backoffice (uis/backoffice, :3000) consume esta API desde el navegador.
@@ -36,6 +39,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(profiles_router)
 app.include_router(suppliers_router)
 
 
