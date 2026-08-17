@@ -6,6 +6,7 @@
 
 ## Completado
 
+- **Diagramas de clases — Digital Wallet y Music Playlist** ✅ — PNGs de entrega con nombres exactos y fuentes SVG publicados en `docs/class-diagrams/`; incluyen propiedades tipadas, relaciones y cardinalidades explícitas. _Rama `project/class-diagrams`._
 - **Hito 0 — Elige tu empresa** ✅ — `company-choice.md` + `CONTEXT.md` (Nexova). Empresa bloqueada: **Nexova**. Departamentos foco: Operaciones de Selección y Soporte externalizado. _Entregado a `main`._
 - **Hito 1 — Web pública** ✅ — `index.html`, `application.html`, `validation.js` (HTML5 + Tailwind + Schema.org + validación JS). _Entregado a `main`._
 - **Hito 2 — Lógica de negocio (TS)** ✅ — `src/` con interfaces (Candidate/Vacancy/SelectionProcess), filtros, búsqueda lineal/binaria, **motor de scoring 0-100**, agregaciones y validaciones. `tsc --noEmit` limpio; demo correcta (scores 100/82/10). _Rama `hito-2-fundamentos-programacion` + PR._

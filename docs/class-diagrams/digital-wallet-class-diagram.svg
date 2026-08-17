@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 1800 1800">
+  <defs>
+    <style>
+      .bg { fill: #f5f7fb; }
+      .title { font: 700 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #172033; }
+      .subtitle { font: 400 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #536079; }
+      .box { fill: #ffffff; stroke: #2e3a59; stroke-width: 3; rx: 16; }
+      .head { fill: #3157d5; }
+      .head2 { fill: #167d80; }
+      .class { font: 700 27px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #ffffff; }
+      .prop { font: 19px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #27324a; }
+      .line { stroke: #65718b; stroke-width: 3; fill: none; }
+      .rel { font: 600 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #37445e; }
+      .card { font: 700 20px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #b0452f; }
+      .legend { fill: #e9eefc; stroke: #a6b3d4; stroke-width: 2; rx: 12; }
+      .legendText { font: 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #3d4962; }
+    </style>
+    <marker id="openArrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto">
+      <path d="M 2 2 L 12 7 L 2 12" fill="none" stroke="#65718b" stroke-width="2"/>
+    </marker>
+  </defs>
+
+  <g transform="translate(0 340)">
+  <rect class="bg" width="1800" height="1120"/>
+  <text class="title" x="900" y="62" text-anchor="middle">Digital Wallet — Diagrama de clases</text>
+  <text class="subtitle" x="900" y="96" text-anchor="middle">Modelo de usuarios, monederos, monedas y transacciones</text>
+
+  <!-- User -->
+  <rect class="box" x="90" y="160" width="520" height="310"/>
+  <path class="head" d="M106 160 H594 Q610 160 610 176 V224 H90 V176 Q90 160 106 160 Z"/>
+  <text class="class" x="350" y="202" text-anchor="middle">User</text>
+  <line class="line" x1="90" y1="224" x2="610" y2="224"/>
+  <text class="prop" x="120" y="270">+ id: UUID</text>
+  <text class="prop" x="120" y="310">+ fullName: string</text>
+  <text class="prop" x="120" y="350">+ email: string</text>
+  <text class="prop" x="120" y="390">+ createdAt: datetime</text>
+
+  <!-- Currency -->
+  <rect class="box" x="1190" y="160" width="520" height="310"/>
+  <path class="head2" d="M1206 160 H1694 Q1710 160 1710 176 V224 H1190 V176 Q1190 160 1206 160 Z"/>
+  <text class="class" x="1450" y="202" text-anchor="middle">Currency</text>
+  <line class="line" x1="1190" y1="224" x2="1710" y2="224"/>
+  <text class="prop" x="1220" y="270">+ code: string</text>
+  <text class="prop" x="1220" y="310">+ name: string</text>
+  <text class="prop" x="1220" y="350">+ symbol: string</text>
+  <text class="prop" x="1220" y="390">+ decimals: integer</text>
+
+  <!-- Wallet -->
+  <rect class="box" x="640" y="315" width="520" height="350"/>
+  <path class="head" d="M656 315 H1144 Q1160 315 1160 331 V379 H640 V331 Q640 315 656 315 Z"/>
+  <text class="class" x="900" y="357" text-anchor="middle">Wallet</text>
+  <line class="line" x1="640" y1="379" x2="1160" y2="379"/>
+  <text class="prop" x="670" y="425">+ id: UUID</text>
+  <text class="prop" x="670" y="465">+ ownerId: UUID</text>
+  <text class="prop" x="670" y="505">+ balance: decimal</text>
+  <text class="prop" x="670" y="545">+ currencyCode: string</text>
+  <text class="prop" x="670" y="585">+ status: WalletStatus</text>
+
+  <!-- Transaction -->
+  <rect class="box" x="560" y="790" width="680" height="310"/>
+  <path class="head2" d="M576 790 H1224 Q1240 790 1240 806 V854 H560 V806 Q560 790 576 790 Z"/>
+  <text class="class" x="900" y="832" text-anchor="middle">Transaction</text>
+  <line class="line" x1="560" y1="854" x2="1240" y2="854"/>
+  <text class="prop" x="590" y="900">+ id: UUID</text>
+  <text class="prop" x="590" y="940">+ sourceWalletId: UUID</text>
+  <text class="prop" x="590" y="980">+ destinationWalletId: UUID</text>
+  <text class="prop" x="940" y="900">+ amount: decimal</text>
+  <text class="prop" x="940" y="940">+ currencyCode: string</text>
+  <text class="prop" x="940" y="980">+ timestamp: datetime</text>
+  <text class="prop" x="940" y="1020">+ status: TransactionStatus</text>
+
+  <!-- User owns Wallet -->
+  <path class="line" marker-end="url(#openArrow)" d="M610 335 H625 Q640 335 640 350"/>
+  <text class="rel" x="622" y="302" text-anchor="middle">owns</text>
+  <text class="card" x="585" y="326">1</text>
+  <text class="card" x="650" y="310">1..*</text>
+
+  <!-- Currency denominates Wallet -->
+  <path class="line" marker-end="url(#openArrow)" d="M1190 335 H1175 Q1160 335 1160 350"/>
+  <text class="rel" x="1180" y="302" text-anchor="middle">denominates</text>
+  <text class="card" x="1200" y="326">1</text>
+  <text class="card" x="1095" y="310">0..*</text>
+
+  <!-- Wallet source / destination relationships -->
+  <path class="line" marker-end="url(#openArrow)" d="M790 665 V720 H690 V790"/>
+  <text class="rel" x="682" y="712" text-anchor="end">outgoing / source</text>
+  <text class="card" x="755" y="695">1</text>
+  <text class="card" x="700" y="775">0..*</text>
+
+  <path class="line" marker-end="url(#openArrow)" d="M1010 665 V720 H1110 V790"/>
+  <text class="rel" x="1118" y="712">incoming / destination</text>
+  <text class="card" x="1020" y="695">1</text>
+  <text class="card" x="1050" y="775">0..*</text>
+
+  <!-- Currency settles Transaction -->
+  <path class="line" marker-end="url(#openArrow)" d="M1450 470 V945 H1240"/>
+  <text class="rel" x="1468" y="720">settles in</text>
+  <text class="card" x="1464" y="495">1</text>
+  <text class="card" x="1250" y="932">0..*</text>
+
+  <rect class="legend" x="90" y="545" width="410" height="120"/>
+  <text class="legendText" x="120" y="587">Cardinalidad: origen → destino</text>
+  <text class="legendText" x="120" y="625">Cada transacción registra origen y destino.</text>
+  </g>
+</svg>

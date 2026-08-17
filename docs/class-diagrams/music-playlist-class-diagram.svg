@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1900" viewBox="0 0 1900 1900">
+  <defs>
+    <style>
+      .bg { fill: #faf7fc; }
+      .title { font: 700 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #25172f; }
+      .subtitle { font: 400 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #66556f; }
+      .box { fill: #ffffff; stroke: #443451; stroke-width: 3; rx: 16; }
+      .headA { fill: #7b3fb2; }
+      .headB { fill: #c04c7a; }
+      .headC { fill: #386e86; }
+      .class { font: 700 25px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #ffffff; }
+      .prop { font: 18px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #352b3d; }
+      .line { stroke: #74627c; stroke-width: 3; fill: none; }
+      .rel { font: 600 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4f4058; }
+      .card { font: 700 20px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #aa3f58; }
+      .legend { fill: #f0e7f5; stroke: #b9a2c8; stroke-width: 2; rx: 12; }
+      .legendText { font: 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #55445e; }
+    </style>
+    <marker id="openArrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto">
+      <path d="M 2 2 L 12 7 L 2 12" fill="none" stroke="#74627c" stroke-width="2"/>
+    </marker>
+  </defs>
+
+  <g transform="translate(0 360)">
+  <rect class="bg" width="1900" height="1180"/>
+  <text class="title" x="950" y="60" text-anchor="middle">Music Playlist — Diagrama de clases</text>
+  <text class="subtitle" x="950" y="94" text-anchor="middle">Usuarios, listas, canciones, álbumes y artistas con cardinalidades explícitas</text>
+
+  <!-- User -->
+  <rect class="box" x="80" y="150" width="460" height="280"/>
+  <path class="headA" d="M96 150 H524 Q540 150 540 166 V212 H80 V166 Q80 150 96 150 Z"/>
+  <text class="class" x="310" y="189" text-anchor="middle">User</text>
+  <line class="line" x1="80" y1="212" x2="540" y2="212"/>
+  <text class="prop" x="110" y="255">+ id: UUID</text>
+  <text class="prop" x="110" y="294">+ displayName: string</text>
+  <text class="prop" x="110" y="333">+ email: string</text>
+  <text class="prop" x="110" y="372">+ joinedAt: datetime</text>
+
+  <!-- Playlist -->
+  <rect class="box" x="710" y="150" width="480" height="310"/>
+  <path class="headB" d="M726 150 H1174 Q1190 150 1190 166 V212 H710 V166 Q710 150 726 150 Z"/>
+  <text class="class" x="950" y="189" text-anchor="middle">Playlist</text>
+  <line class="line" x1="710" y1="212" x2="1190" y2="212"/>
+  <text class="prop" x="740" y="255">+ id: UUID</text>
+  <text class="prop" x="740" y="294">+ ownerId: UUID</text>
+  <text class="prop" x="740" y="333">+ name: string</text>
+  <text class="prop" x="740" y="372">+ isPublic: boolean</text>
+  <text class="prop" x="740" y="411">+ createdAt: datetime</text>
+
+  <!-- PlaylistSong -->
+  <rect class="box" x="700" y="650" width="500" height="300"/>
+  <path class="headC" d="M716 650 H1184 Q1200 650 1200 666 V712 H700 V666 Q700 650 716 650 Z"/>
+  <text class="class" x="950" y="689" text-anchor="middle">PlaylistSong</text>
+  <line class="line" x1="700" y1="712" x2="1200" y2="712"/>
+  <text class="prop" x="730" y="755">+ playlistId: UUID</text>
+  <text class="prop" x="730" y="794">+ songId: UUID</text>
+  <text class="prop" x="730" y="833">+ position: integer</text>
+  <text class="prop" x="730" y="872">+ addedAt: datetime</text>
+
+  <!-- Song -->
+  <rect class="box" x="1360" y="650" width="470" height="330"/>
+  <path class="headB" d="M1376 650 H1814 Q1830 650 1830 666 V712 H1360 V666 Q1360 650 1376 650 Z"/>
+  <text class="class" x="1595" y="689" text-anchor="middle">Song</text>
+  <line class="line" x1="1360" y1="712" x2="1830" y2="712"/>
+  <text class="prop" x="1390" y="755">+ id: UUID</text>
+  <text class="prop" x="1390" y="794">+ albumId: UUID</text>
+  <text class="prop" x="1390" y="833">+ title: string</text>
+  <text class="prop" x="1390" y="872">+ durationSeconds: integer</text>
+  <text class="prop" x="1390" y="911">+ trackNumber: integer</text>
+
+  <!-- Album -->
+  <rect class="box" x="1360" y="150" width="470" height="310"/>
+  <path class="headA" d="M1376 150 H1814 Q1830 150 1830 166 V212 H1360 V166 Q1360 150 1376 150 Z"/>
+  <text class="class" x="1595" y="189" text-anchor="middle">Album</text>
+  <line class="line" x1="1360" y1="212" x2="1830" y2="212"/>
+  <text class="prop" x="1390" y="255">+ id: UUID</text>
+  <text class="prop" x="1390" y="294">+ artistId: UUID</text>
+  <text class="prop" x="1390" y="333">+ title: string</text>
+  <text class="prop" x="1390" y="372">+ releaseDate: date</text>
+  <text class="prop" x="1390" y="411">+ coverUrl: string</text>
+
+  <!-- Artist -->
+  <rect class="box" x="80" y="720" width="460" height="260"/>
+  <path class="headC" d="M96 720 H524 Q540 720 540 736 V782 H80 V736 Q80 720 96 720 Z"/>
+  <text class="class" x="310" y="759" text-anchor="middle">Artist</text>
+  <line class="line" x1="80" y1="782" x2="540" y2="782"/>
+  <text class="prop" x="110" y="825">+ id: UUID</text>
+  <text class="prop" x="110" y="864">+ name: string</text>
+  <text class="prop" x="110" y="903">+ country: string</text>
+
+  <!-- Relationships -->
+  <path class="line" marker-end="url(#openArrow)" d="M540 290 H710"/>
+  <text class="rel" x="625" y="275" text-anchor="middle">creates</text>
+  <text class="card" x="558" y="320">1</text>
+  <text class="card" x="650" y="320">0..*</text>
+
+  <path class="line" marker-end="url(#openArrow)" d="M950 460 V650"/>
+  <text class="rel" x="970" y="555">contains</text>
+  <text class="card" x="916" y="490">1</text>
+  <text class="card" x="890" y="635">1..*</text>
+
+  <path class="line" marker-end="url(#openArrow)" d="M1200 800 H1360"/>
+  <text class="rel" x="1280" y="783" text-anchor="middle">references</text>
+  <text class="card" x="1215" y="832">0..*</text>
+  <text class="card" x="1330" y="832">1</text>
+
+  <path class="line" marker-end="url(#openArrow)" d="M1595 460 V650"/>
+  <text class="rel" x="1615" y="555">includes</text>
+  <text class="card" x="1560" y="490">1</text>
+  <text class="card" x="1535" y="635">1..*</text>
+
+  <path class="line" marker-end="url(#openArrow)" d="M80 850 H35 V120 H1595 V150"/>
+  <text class="rel" x="950" y="140" text-anchor="middle">publishes</text>
+  <text class="card" x="44" y="838">1</text>
+  <text class="card" x="1535" y="143">0..*</text>
+
+  <rect class="legend" x="80" y="1040" width="1740" height="90"/>
+  <text class="legendText" x="110" y="1077">PlaylistSong resuelve la relación muchos-a-muchos: una playlist contiene una o más canciones y una canción puede aparecer en cero o más playlists.</text>
+  <text class="legendText" x="110" y="1108">Cada canción pertenece a un álbum; cada álbum pertenece a un artista.</text>
+  </g>
+</svg>
