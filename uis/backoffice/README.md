@@ -79,6 +79,11 @@ el botón **Generar propuesta** dispara el loop generador-evaluadores, muestra e
 borrador y el resultado estructurado por departamento, y distingue una evaluación
 superada de `needs_human_review` sin exponer valores crudos de estado.
 
+También cubre la aprobación humana de Parte 3: inicia una pausa independiente
+por departamento, muestra el propietario correcto, valida feedback para rechazo
+o cambios y presenta el documento final únicamente cuando todas las ramas están
+aprobadas.
+
 ```bash
 # Terminal 1 — API (Hito 5)
 cd services/talent-api

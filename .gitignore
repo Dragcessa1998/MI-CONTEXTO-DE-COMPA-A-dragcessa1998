@@ -25,6 +25,8 @@ suppliers.db.json
 data/qdrant/
 data/eval/recall-results.json.tmp
 data/raw/rfps/
+data/checkpoints/
+data/final/rfps/
 
 # Variables de entorno
 .env
