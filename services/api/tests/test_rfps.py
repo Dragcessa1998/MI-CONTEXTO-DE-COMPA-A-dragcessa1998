@@ -15,6 +15,7 @@ from data.pipelines.rfp_intake.approval_models import ApprovalBranchResult, Fina
 from data.pipelines.rfp_intake.proposal_models import ProposalGenerationResult
 from main import app
 from routes import rfps as rfp_routes
+from routes.rfp_events import rfp_event_broker
 
 
 DEFAULT_SAMPLES = (
@@ -173,6 +174,17 @@ def test_upload_returns_ticket_and_persists_full_analysis(
     assert response.status_code == 202
     ticket_id = response.json()["ticket_id"]
     assert response.json()["status_url"] == f"/api/rfps/{ticket_id}"
+    subscription = rfp_event_broker.subscribe(0)
+    try:
+        assert len(subscription.replay) == 1
+        assert subscription.replay[0].data == {
+            "ticket_id": ticket_id,
+            "rfp_id": rfp_repository.tickets[ticket_id]["rfp_id"],
+            "status": "analyzing",
+            "created_at": "2026-08-12T10:00:00+00:00",
+        }
+    finally:
+        rfp_event_broker.unsubscribe(subscription)
 
     detail = client.get(f"/api/rfps/{ticket_id}")
     assert detail.status_code == 200

@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { SESSION_TOKEN_KEY, incidentsApi } from "@/lib/incidents";
 import { RfpApiError, rfpsApi, type ApprovalDecision, type DepartmentSection, type FinalDocument, type RfpStatus, type RfpTicket } from "@/lib/rfps";
+import { connectRfpStream, type RfpStreamState, type RfpTicketCreatedEvent } from "@/lib/rfp-stream";
 
 const STATUS_LABELS: Record<RfpStatus, string> = {
   analyzing: "Analizando",
@@ -30,6 +31,8 @@ export default function RfpIntake() {
   const [draftBusy, setDraftBusy] = useState(false);
   const [approvalBusy, setApprovalBusy] = useState(false);
   const [finalDocument, setFinalDocument] = useState<FinalDocument | null>(null);
+  const [liveEvents, setLiveEvents] = useState<RfpTicketCreatedEvent[]>([]);
+  const [streamState, setStreamState] = useState<RfpStreamState>({ status: "connecting" });
 
   useEffect(() => {
     setToken(window.localStorage.getItem(SESSION_TOKEN_KEY) ?? "");
@@ -58,6 +61,27 @@ export default function RfpIntake() {
   }, [expireSession]);
 
   useEffect(() => { if (token) void loadTickets(); }, [loadTickets, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const controller = new AbortController();
+    connectRfpStream({
+      token,
+      signal: controller.signal,
+      onEvent: (event) => {
+        setLiveEvents((current) => current.some((item) => item.ticket_id === event.ticket_id)
+          ? current
+          : [event, ...current].slice(0, 5));
+        void rfpsApi.detail(event.ticket_id).then((detail) => {
+          setTickets((current) => [detail, ...current.filter((item) => item.ticket_id !== detail.ticket_id)]);
+        }).catch(() => undefined);
+      },
+      onRecovery: loadTickets,
+      onState: setStreamState,
+      onUnauthorized: expireSession,
+    });
+    return () => controller.abort();
+  }, [expireSession, loadTickets, token]);
 
   useEffect(() => {
     if (!selected || selected.processing_error) return;
@@ -167,6 +191,7 @@ export default function RfpIntake() {
         <h2 className="text-2xl font-extrabold text-slate-900">Recepción y enrutamiento de RFPs</h2>
         <p className="text-sm text-slate-500">Sube un PDF, recibe un ticket inmediatamente y sigue su análisis por departamento.</p>
       </header>
+      <LiveRfpNotifications events={liveEvents} state={streamState} />
       <UploadPanel onCreated={async (ticketId) => {
         const detail = await rfpsApi.detail(ticketId);
         setSelected(detail);
@@ -180,6 +205,23 @@ export default function RfpIntake() {
       </div>
     </div>
   );
+}
+
+function LiveRfpNotifications({ events, state }: { events: RfpTicketCreatedEvent[]; state: RfpStreamState }) {
+  const connectionLabel = state.status === "connected"
+    ? "Conectado en tiempo real"
+    : state.status === "reconnecting"
+      ? `Reconectando en ${Math.ceil(state.retryInMs / 1000)} s`
+      : "Conectando notificaciones";
+  return <section aria-live="polite" className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div><p className="text-xs font-bold uppercase tracking-widest text-blue-700">Nuevas RFP · stream SSE</p><h3 className="font-bold text-blue-950">{connectionLabel}</h3></div>
+      <span className={`h-3 w-3 rounded-full ${state.status === "connected" ? "bg-emerald-500" : "animate-pulse bg-amber-500"}`} aria-hidden="true" />
+    </div>
+    {events.length === 0
+      ? <p className="mt-2 text-sm text-blue-800">Las nuevas solicitudes aparecerán aquí sin recargar el panel.</p>
+      : <ul className="mt-3 space-y-2">{events.map((event) => <li key={event.ticket_id} className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm text-slate-700"><strong className="text-slate-950">Nueva RFP {event.ticket_id.slice(0, 8)}</strong><span className="ml-2">necesita procesamiento · {new Date(event.created_at).toLocaleString("es-ES")}</span></li>)}</ul>}
+  </section>;
 }
 
 function UploadPanel({ onCreated }: { onCreated: (ticketId: string) => Promise<void> }) {

@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, HTTPException, Request, UploadFile, status
+from fastapi.responses import StreamingResponse
 
 from data.pipelines.rfp_intake import (
     ApprovalWorkflowRuntime,
@@ -19,6 +20,7 @@ from data.pipelines.rfp_intake import (
 from data.pipelines.rfp_intake.approval_models import ApprovalDecisionRequest
 from data.pipelines.rfp_intake.models import DepartmentId
 from rfp_repository import RfpRepository, get_rfp_repository
+from routes.rfp_events import rfp_event_broker, stream_rfp_events
 from security import get_current_user
 
 
@@ -91,6 +93,12 @@ async def upload_rfp(
     except Exception:
         target.unlink(missing_ok=True)
         raise
+    rfp_event_broker.publish({
+        "ticket_id": ticket["ticket_id"],
+        "rfp_id": ticket["rfp_id"],
+        "status": "analyzing",
+        "created_at": ticket["created_at"],
+    })
     background_tasks.add_task(_run_background, ticket["ticket_id"], str(target), repository)
     return {
         "ticket_id": ticket["ticket_id"],
@@ -104,6 +112,26 @@ def list_rfps(
     repository: Annotated[RfpRepository, Depends(repository_dependency)],
 ) -> list[dict[str, Any]]:
     return repository.list_tickets()
+
+
+@router.get("/events", response_class=StreamingResponse)
+async def get_rfp_events(
+    request: Request,
+    last_event_id: Annotated[str | None, Header(alias="Last-Event-ID")] = None,
+) -> StreamingResponse:
+    try:
+        cursor = max(0, int(last_event_id or "0"))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Last-Event-ID no es válido.") from exc
+    return StreamingResponse(
+        stream_rfp_events(request, cursor),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/{ticket_id}/draft", status_code=status.HTTP_202_ACCEPTED)

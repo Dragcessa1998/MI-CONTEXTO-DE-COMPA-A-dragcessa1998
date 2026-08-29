@@ -14,6 +14,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import database  # noqa: E402
 from main import app  # noqa: E402
+from routes.rfp_events import rfp_event_broker  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +32,13 @@ def isolated_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     if database._db is not None:
         database._db.close()
     database._db = None
+
+
+@pytest.fixture(autouse=True)
+def isolated_rfp_event_broker():
+    rfp_event_broker.reset()
+    yield
+    rfp_event_broker.reset()
 
 
 @pytest.fixture
