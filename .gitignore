@@ -24,6 +24,7 @@ __pycache__/
 suppliers.db.json
 data/qdrant/
 data/eval/recall-results.json.tmp
+data/raw/rfps/
 
 # Variables de entorno
 .env

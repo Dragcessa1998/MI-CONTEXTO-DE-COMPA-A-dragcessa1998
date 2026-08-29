@@ -1,7 +1,7 @@
 [project]
 name = "nexova-supplier-api"
 version = "3.0.0"
-description = "API operativa de Nexova: JWT, proveedores e incidentes en TinyDB"
+description = "API Nexova: operaciones en TinyDB y recepción RFP persistida en PostgreSQL"
 requires-python = ">=3.11"
 dependencies = [
     "email-validator>=2.2",
@@ -16,6 +16,8 @@ dependencies = [
     "openai>=2.0,<3",
     "qdrant-client>=1.15,<2",
     "langgraph>=1.0,<2",
+    "pypdf>=5,<7",
+    "psycopg[binary]>=3.2,<4",
 ]
 
 [dependency-groups]
@@ -35,5 +37,5 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "models", "database", "seed"]
+py-modules = ["main", "models", "database", "seed", "rfp_repository"]
 packages = ["agent", "routes"]
