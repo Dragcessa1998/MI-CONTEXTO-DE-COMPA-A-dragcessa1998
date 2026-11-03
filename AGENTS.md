@@ -10,6 +10,7 @@ del usuario contradice este protocolo, **detente y pregunta** antes de actuar.
 
 Antes de tocar nada, lee y carga en contexto, en este orden:
 
+0. `BRIEFING.md` — briefing oficial de Nexova (00-general-contexts): identidad, restricciones y hoja de ruta.
 1. `memory-bank/projectbrief.md` — qué es Nexova y qué problema resolvemos (negocio).
 2. `memory-bank/techContext.md` — stack, estructura del monorepo y decisiones de arquitectura.
 3. `memory-bank/progress.md` — estado actual y próximos pasos.
@@ -35,7 +36,7 @@ Ejecuta estos pasos **en orden**. Ningún commit sin completarlos:
 
 ## 3. Zonas protegidas — NO modificar sin confirmación explícita del desarrollador
 
-- `CONTEXT.md` y `company-choice.md` — definen la empresa y el hito; son decisiones del estudiante.
+- `BRIEFING.md`, `CONTEXT.md` y `company-choice.md` — definen la empresa y el hito; son decisiones del estudiante.
 - `memory-bank/projectbrief.md` — verdad de negocio; cambiarla altera el contrato del proyecto.
 - Cualquier `*/.env`, `*/.env.local` o archivo con secretos.
 - Lockfiles (`package-lock.json`) salvo cuando el cambio sea, precisamente, de dependencias.
