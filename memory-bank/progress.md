@@ -13,6 +13,8 @@
 - **Hito 4 — Ingeniería impulsada por IA** ✅ — `memory-bank/` + `AGENTS.md` + `.agents/rules` + `.agents/skills`; `uis/website` (web del Hito 1 → componentes React) y `uis/backoffice` (layout propio que **importa** la lógica del Hito 2 vía alias `@logic`, output visible: KPIs + ranking). `next build` OK en ambas. _Rama `milestone-4` + PR._
 - **Hito 5 — Backend (proactivo)** ✅ — `services/talent-api` (Express + TS). API central que **reutiliza** la lógica del Hito 2 (alias `@logic`): CRUD completo de candidatos (GET/POST/PUT/PATCH/DELETE), vacantes (GET/POST/DELETE), procesos de selección (GET/POST), `GET /vacancies/:id/ranking` (scoring), `GET /reports/summary` y `GET /reports/fill-rate`, con CORS. Almacenamiento en memoria sembrado del Hito 2. Verificado levantando la API. _Rama `milestone-5` + PR._ Nota: construido según la definición del README; reconciliar con la rúbrica oficial del Hito 5 cuando se publique.
 
+- **Hito 4 — entrega formal** ✅ — `BRIEFING.md` en la raíz con el briefing oficial `nexova-BRIEFING.en.md` (00-general-contexts); `AGENTS.md` lo lee primero y lo protege. Rama `feature/agent-memory-bank` + PR hacia `main` (nombre exigido por el enunciado).
+
 ## Decisiones recientes
 
 - La lógica de negocio del Hito 2 queda como **fuente única en `/src`**; `uis/backoffice` y `services/talent-api` la **importan** mediante alias de TS (`@logic`), sin copiar.
