@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { AVAILABILITY_OPTIONS } from "@/lib/labels";
+import { FormErrorList, FormField, formInputClass } from "@/components/forms/FormPrimitives";
 import {
   ENGLISH_ORDER,
   SENIORITY_ORDER,
@@ -26,19 +27,6 @@ const INITIAL = {
   remoteOnly: false,
   status: "Active",
 };
-
-const inputClass =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100";
-
-/** Campo con etiqueta. */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-slate-600">{label}</span>
-      {children}
-    </label>
-  );
-}
 
 /**
  * Formulario de alta de candidato. Envía `POST /candidates` a la Talent API y
@@ -88,8 +76,9 @@ export default function AddCandidateForm({
       if (err instanceof ApiError) {
         setErrors(err.message.split(" · "));
       } else {
-        setErrors([err instanceof Error ? err.message : "Error al crear el candidato"]);
+        setErrors(["No se pudo crear el candidato. Revisa los datos y vuelve a intentarlo."]);
       }
+    } finally {
       setSubmitting(false);
     }
   }
@@ -103,67 +92,64 @@ export default function AddCandidateForm({
         </span>
       </div>
 
-      {errors.length > 0 && (
-        <ul className="mt-3 list-disc space-y-1 rounded-lg border border-rose-200 bg-rose-50 py-3 pl-8 pr-4 text-sm text-rose-700">
-          {errors.map((message, index) => (
-            <li key={`${index}-${message}`}>{message}</li>
-          ))}
-        </ul>
-      )}
+      <FormErrorList
+        messages={errors}
+        instruction="Corrige los campos y vuelve a pulsar “Crear candidato”."
+      />
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="Nombre completo">
-          <input required value={form.fullName} onChange={(e) => update("fullName", e.target.value)} className={inputClass} placeholder="Ana Ruiz" />
-        </Field>
-        <Field label="Email">
-          <input type="email" required value={form.email} onChange={(e) => update("email", e.target.value)} className={inputClass} placeholder="ana@mail.com" />
-        </Field>
-        <Field label="Teléfono">
-          <input required value={form.phone} onChange={(e) => update("phone", e.target.value)} className={inputClass} placeholder="+34600000000" />
-        </Field>
-        <Field label="Años de experiencia">
-          <input type="number" min={0} max={50} value={form.yearsOfExperience} onChange={(e) => update("yearsOfExperience", e.target.value)} className={inputClass} />
-        </Field>
-        <Field label="Habilidades (separadas por comas)">
-          <input value={form.skills} onChange={(e) => update("skills", e.target.value)} className={inputClass} placeholder="TypeScript, React" />
-        </Field>
-        <Field label="Nivel de inglés">
-          <select value={form.englishLevel} onChange={(e) => update("englishLevel", e.target.value)} className={inputClass}>
+        <FormField label="Nombre completo">
+          <input required value={form.fullName} onChange={(e) => update("fullName", e.target.value)} className={formInputClass} placeholder="Ana Ruiz" />
+        </FormField>
+        <FormField label="Email">
+          <input type="email" required value={form.email} onChange={(e) => update("email", e.target.value)} className={formInputClass} placeholder="ana@mail.com" />
+        </FormField>
+        <FormField label="Teléfono">
+          <input required value={form.phone} onChange={(e) => update("phone", e.target.value)} className={formInputClass} placeholder="+34600000000" />
+        </FormField>
+        <FormField label="Años de experiencia">
+          <input type="number" min={0} max={50} value={form.yearsOfExperience} onChange={(e) => update("yearsOfExperience", e.target.value)} className={formInputClass} />
+        </FormField>
+        <FormField label="Habilidades (separadas por comas)">
+          <input value={form.skills} onChange={(e) => update("skills", e.target.value)} className={formInputClass} placeholder="TypeScript, React" />
+        </FormField>
+        <FormField label="Nivel de inglés">
+          <select value={form.englishLevel} onChange={(e) => update("englishLevel", e.target.value)} className={formInputClass}>
             {ENGLISH_ORDER.map((level) => (
               <option key={level} value={level}>{level}</option>
             ))}
           </select>
-        </Field>
-        <Field label="Seniority">
-          <select value={form.seniority} onChange={(e) => update("seniority", e.target.value)} className={inputClass}>
+        </FormField>
+        <FormField label="Seniority">
+          <select value={form.seniority} onChange={(e) => update("seniority", e.target.value)} className={formInputClass}>
             {SENIORITY_ORDER.map((level) => (
               <option key={level} value={level}>{level}</option>
             ))}
           </select>
-        </Field>
-        <Field label="Salario actual ($)">
-          <input type="number" min={0} value={form.currentSalary} onChange={(e) => update("currentSalary", e.target.value)} className={inputClass} />
-        </Field>
-        <Field label="Salario esperado ($)">
-          <input type="number" min={0} value={form.expectedSalary} onChange={(e) => update("expectedSalary", e.target.value)} className={inputClass} />
-        </Field>
-        <Field label="Disponibilidad">
-          <select value={form.availability} onChange={(e) => update("availability", e.target.value)} className={inputClass}>
+        </FormField>
+        <FormField label="Salario actual ($)">
+          <input type="number" min={0} value={form.currentSalary} onChange={(e) => update("currentSalary", e.target.value)} className={formInputClass} />
+        </FormField>
+        <FormField label="Salario esperado ($)">
+          <input type="number" min={0} value={form.expectedSalary} onChange={(e) => update("expectedSalary", e.target.value)} className={formInputClass} />
+        </FormField>
+        <FormField label="Disponibilidad">
+          <select value={form.availability} onChange={(e) => update("availability", e.target.value)} className={formInputClass}>
             {AVAILABILITY_OPTIONS.map((option) => (
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
-        </Field>
-        <Field label="Ubicación">
-          <input value={form.location} onChange={(e) => update("location", e.target.value)} className={inputClass} placeholder="Valencia" />
-        </Field>
-        <Field label="Estado">
-          <select value={form.status} onChange={(e) => update("status", e.target.value)} className={inputClass}>
+        </FormField>
+        <FormField label="Ubicación">
+          <input value={form.location} onChange={(e) => update("location", e.target.value)} className={formInputClass} placeholder="Valencia" />
+        </FormField>
+        <FormField label="Estado">
+          <select value={form.status} onChange={(e) => update("status", e.target.value)} className={formInputClass}>
             {CANDIDATE_STATUSES.map((option) => (
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
-        </Field>
+        </FormField>
       </div>
 
       <label className="mt-4 flex items-center gap-2 text-sm text-slate-600">

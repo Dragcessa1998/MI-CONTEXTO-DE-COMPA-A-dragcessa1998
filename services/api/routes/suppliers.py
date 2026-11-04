@@ -8,13 +8,18 @@ tiene éxito.
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from tinydb.table import Document
 
 from database import suppliers_table
 from models import RateUpdate, StatusUpdate, SupplierIn, SupplierOut
+from security import get_current_user
 
-router = APIRouter(prefix="/suppliers", tags=["suppliers"])
+router = APIRouter(
+    prefix="/suppliers",
+    tags=["suppliers"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 def _now_iso() -> str:

@@ -1,0 +1,12 @@
+[project]
+name = "nexova-shared"
+version = "1.0.0"
+description = "Validaciones y contratos de dominio compartidos de Nexova"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["nexova_shared"]

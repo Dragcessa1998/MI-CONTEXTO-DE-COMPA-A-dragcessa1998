@@ -1,0 +1,3 @@
+# 01:15 UTC daily. Cron must set DATABASE_URL in its protected environment.
+CRON_TZ=UTC
+15 1 * * * cd /workspace && /usr/local/bin/python scripts/nightly_export.py >> /var/log/nexova-nightly.log 2>&1

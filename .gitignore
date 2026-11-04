@@ -22,6 +22,8 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 suppliers.db.json
+data/qdrant/
+data/eval/recall-results.json.tmp
 
 # Variables de entorno
 .env

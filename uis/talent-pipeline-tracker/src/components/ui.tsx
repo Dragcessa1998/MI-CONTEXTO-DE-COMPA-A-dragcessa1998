@@ -8,6 +8,7 @@ import {
   stageLabel,
   STATUS_BADGE_CLASSES,
 } from "@/lib/labels";
+import Link from "next/link";
 import type { RecordStatus } from "@/types/tracker";
 
 /** Indicador de carga. */
@@ -39,7 +40,7 @@ export function ErrorState({
     >
       <p className="font-semibold">Algo salió mal</p>
       <p className="mt-1 text-sm">{message}</p>
-      {onRetry && (
+      {onRetry ? (
         <button
           type="button"
           onClick={onRetry}
@@ -47,6 +48,10 @@ export function ErrorState({
         >
           Reintentar
         </button>
+      ) : (
+        <Link href="/" className="mt-3 inline-block text-sm font-semibold text-red-700 underline">
+          Volver al listado
+        </Link>
       )}
     </div>
   );

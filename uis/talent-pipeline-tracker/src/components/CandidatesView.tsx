@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { listRecords } from "@/lib/api";
+import { listRecords, TrackerApiError } from "@/lib/api";
 import type { TrackerRecord } from "@/types/tracker";
 import Filters from "./Filters";
 import CandidateTable from "./CandidateTable";
@@ -28,10 +28,10 @@ export default function CandidatesView() {
     setError(null);
     try {
       const response = await listRecords({ status, stage, search });
-      setRecords(response.data);
-      setTotal(response.total);
+      setRecords(response?.data ?? []);
+      setTotal(response?.total ?? 0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido al cargar las candidaturas");
+      setError(err instanceof TrackerApiError ? err.message : "No se pudieron cargar las candidaturas.");
     } finally {
       setLoading(false);
     }

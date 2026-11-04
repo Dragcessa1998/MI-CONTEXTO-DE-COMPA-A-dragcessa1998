@@ -25,7 +25,7 @@ export default function BackofficeLayout({ children }: { children: React.ReactNo
             <nav className="mt-2 flex-1 px-3" aria-label="Navegación del backoffice">
               <NavLinks />
             </nav>
-            <p className="px-5 py-4 text-xs text-slate-500">Operaciones de Selección</p>
+            <p className="px-5 py-4 text-xs text-slate-400">Operaciones de Selección</p>
           </aside>
 
           {/* Contenido */}

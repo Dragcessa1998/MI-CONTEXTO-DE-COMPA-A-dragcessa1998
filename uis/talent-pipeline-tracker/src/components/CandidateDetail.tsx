@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteRecord, getRecord } from "@/lib/api";
+import { deleteRecord, getRecord, TrackerApiError } from "@/lib/api";
 import type { TrackerRecord } from "@/types/tracker";
 import { formatDate } from "@/lib/format";
-import { LoadingState, ErrorState, StatusBadge, StageBadge } from "./ui";
+import { LoadingState, ErrorState, EmptyState, StatusBadge, StageBadge } from "./ui";
 import StatusStageControls from "./StatusStageControls";
 import NotesSection from "./NotesSection";
 
@@ -37,7 +37,7 @@ export default function CandidateDetail({ id }: { id: string }) {
     try {
       setRecord(await getRecord(id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo cargar la candidatura");
+      setError(err instanceof TrackerApiError ? err.message : "No se pudo cargar la candidatura.");
     } finally {
       setLoading(false);
     }
@@ -56,14 +56,15 @@ export default function CandidateDetail({ id }: { id: string }) {
       router.push("/");
       router.refresh();
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "No se pudo eliminar la candidatura");
+      setDeleteError(err instanceof TrackerApiError ? err.message : "No se pudo eliminar la candidatura.");
+    } finally {
       setDeleting(false);
     }
   }
 
   if (loading) return <LoadingState label="Cargando candidatura…" />;
   if (error) return <ErrorState message={error} onRetry={fetchRecord} />;
-  if (!record) return null;
+  if (!record) return <EmptyState message="La candidatura ya no está disponible. Vuelve al listado para continuar." />;
 
   return (
     <div className="space-y-6">
@@ -128,9 +129,10 @@ export default function CandidateDetail({ id }: { id: string }) {
         )}
 
         {deleteError && (
-          <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {deleteError}
-          </p>
+          <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p>{deleteError}</p>
+            <p className="mt-1 text-xs">Puedes reintentar con “Sí, eliminar” o cancelar y volver al listado.</p>
+          </div>
         )}
 
         <dl className="mt-6 grid gap-4 sm:grid-cols-2">

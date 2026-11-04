@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { patchRecord } from "@/lib/api";
+import { patchRecord, TrackerApiError } from "@/lib/api";
 import type { TrackerRecord, RecordStatus, RecordStage } from "@/types/tracker";
 import { STATUS_OPTIONS, STAGE_OPTIONS } from "@/lib/labels";
 
@@ -33,7 +33,7 @@ export default function StatusStageControls({ record, onUpdated }: Props) {
       onUpdated(updated);
       setSavedField(field);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo actualizar");
+      setError(err instanceof TrackerApiError ? err.message : "No se pudo actualizar el proceso.");
     } finally {
       setSaving(null);
     }
@@ -89,9 +89,10 @@ export default function StatusStageControls({ record, onUpdated }: Props) {
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red-600">
-          {error}
-        </p>
+        <div role="alert" className="mt-3 text-sm text-red-600">
+          <p>{error}</p>
+          <p className="text-xs">La selección anterior sigue activa; vuelve a elegir una opción para reintentar.</p>
+        </div>
       )}
     </section>
   );
