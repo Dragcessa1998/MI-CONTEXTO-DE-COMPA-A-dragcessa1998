@@ -1,0 +1,120 @@
+{
+  "evaluated_at": "2026-11-04T14:09:08.476287+00:00",
+  "metric": "Recall@3",
+  "minimum_score": 0.65,
+  "hits": 11,
+  "total": 11,
+  "recall_at_3": 1.0,
+  "passed": true,
+  "results": [
+    {
+      "id": "service-headhunting",
+      "expected_source_document": "service-lines",
+      "retrieved_source_documents": [
+        "pricing-model",
+        "service-lines",
+        "pricing-model"
+      ],
+      "hit": true
+    },
+    {
+      "id": "service-support-minimum",
+      "expected_source_document": "service-lines",
+      "retrieved_source_documents": [
+        "pricing-model",
+        "service-lines",
+        "objection-handling"
+      ],
+      "hit": true
+    },
+    {
+      "id": "service-training-modalities",
+      "expected_source_document": "service-lines",
+      "retrieved_source_documents": [
+        "service-lines",
+        "objection-handling",
+        "objection-handling"
+      ],
+      "hit": true
+    },
+    {
+      "id": "pricing-training-eight-weeks",
+      "expected_source_document": "pricing-model",
+      "retrieved_source_documents": [
+        "pricing-model",
+        "service-lines",
+        "hiring-process-sla"
+      ],
+      "hit": true
+    },
+    {
+      "id": "pricing-outsourcing",
+      "expected_source_document": "pricing-model",
+      "retrieved_source_documents": [
+        "pricing-model",
+        "pricing-model",
+        "hiring-process-sla"
+      ],
+      "hit": true
+    },
+    {
+      "id": "sla-executive",
+      "expected_source_document": "hiring-process-sla",
+      "retrieved_source_documents": [
+        "hiring-process-sla",
+        "objection-handling",
+        "objection-handling"
+      ],
+      "hit": true
+    },
+    {
+      "id": "sla-escalation",
+      "expected_source_document": "hiring-process-sla",
+      "retrieved_source_documents": [
+        "hiring-process-sla",
+        "hiring-process-sla",
+        "objection-handling"
+      ],
+      "hit": true
+    },
+    {
+      "id": "objection-price",
+      "expected_source_document": "objection-handling",
+      "retrieved_source_documents": [
+        "objection-handling",
+        "pricing-model"
+      ],
+      "hit": true
+    },
+    {
+      "id": "objection-payment",
+      "expected_source_document": "objection-handling",
+      "retrieved_source_documents": [
+        "objection-handling",
+        "hiring-process-sla",
+        "hiring-process-sla"
+      ],
+      "hit": true
+    },
+    {
+      "id": "objection-shortlist",
+      "expected_source_document": "objection-handling",
+      "retrieved_source_documents": [
+        "objection-handling",
+        "hiring-process-sla",
+        "service-lines"
+      ],
+      "hit": true
+    },
+    {
+      "id": "objection-competitors",
+      "expected_source_document": "objection-handling",
+      "retrieved_source_documents": [
+        "objection-handling",
+        "objection-handling",
+        "objection-handling"
+      ],
+      "hit": true
+    }
+  ]
+}

@@ -67,7 +67,6 @@ def generate_answer(question: str, context: list[dict[str, Any]]) -> str:
         ),
         input=f"Pregunta del SDR:\n{question.strip()}\n\nFuentes recuperadas:\n{_context_for_prompt(context)}",
         max_output_tokens=450,
-        text={"verbosity": "low"},
     )
     answer = response.output_text.strip()
     if not answer:

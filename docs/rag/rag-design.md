@@ -105,3 +105,20 @@ Fuentes primarias:
 - OpenAI, [Text generation](https://developers.openai.com/api/docs/guides/text): uso de Responses API y `output_text`.
 - OpenAI, [Model guidance](https://developers.openai.com/api/docs/guides/latest-model): familia GPT-5.6 y variantes por coste/capacidad.
 - Qdrant, [Python client](https://python-client.qdrant.tech/): colecciones, upsert y búsqueda vectorial.
+
+## Ejecución validada
+
+La clave de los modelos de 4Geeks no estaba disponible y la cuenta de OpenAI devolvió
+`429 insufficient_quota`, así que la validación real se hizo con modelos locales mediante
+el servidor compatible con OpenAI de LM Studio (`OPENAI_BASE_URL`). Los modelos por defecto
+descritos arriba no se han ejecutado.
+
+- Embeddings: `text-embedding-nomic-embed-text-v1.5` (768 dimensiones, distancia coseno).
+- Generación: `qwen3-4b-instruct-2507`, un modelo distinto del de embeddings.
+- Colección `nexova_knowledge`: 15 chunks.
+- `RAG_MIN_SCORE=0.65`: las preguntas ajenas a Nexova llegan como máximo a 0,633 y el chunk
+  esperado empieza en 0,674. El valor 0,35 no filtraba nada con este modelo.
+- Recall@3: 11/11 (100 %), medido por documento fuente. Resultado en
+  `data/eval/recall-results.json`.
+- Limitación: el umbral se ajustó con estas mismas 11 preguntas y 4 ajenas; hay que
+  recalibrarlo si cambia el modelo de embeddings.

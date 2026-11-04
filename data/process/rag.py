@@ -116,7 +116,7 @@ def load_chunks(corpus_directory: Path = CORPUS_DIRECTORY) -> list[KnowledgeChun
 def get_openai_client() -> OpenAI:
     return OpenAI(
         base_url=os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1",
-        timeout=30.0,
+        timeout=float(os.getenv("OPENAI_TIMEOUT", "30")),
         max_retries=2,
     )
 
