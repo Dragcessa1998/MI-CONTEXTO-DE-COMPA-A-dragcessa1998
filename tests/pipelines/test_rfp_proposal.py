@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import threading
-from typing import Any
+from typing import Any, Callable
+
+import pytest
 
 import data.pipelines.rfp_intake.proposal as proposal
 from data.pipelines.rfp_intake.models import RfpMetadata
@@ -51,17 +53,119 @@ def _ticket() -> dict[str, Any]:
     }
 
 
-def test_generator_uses_part_one_handoff_and_department_rules() -> None:
+def _aspects(prompt: str) -> str:
+    return prompt.split("Aspectos clave:\n", 1)[1].split("\n\n", 1)[0]
+
+
+def passing_draft(prompt: str) -> str:
+    currency = prompt.split("Divisa: ", 1)[1].split("\n", 1)[0]
+    return (
+        f"## Propuesta\n\n{_aspects(prompt)}\n\nCotizamos en {currency}. "
+        "Incluye la garantía de satisfacción de 90 días. "
+        "Cada búsqueda ejecutiva dura al menos 15 días laborables. "
+        "El SLA de respuesta es de 24 horas."
+    )
+
+
+def failing_draft(prompt: str) -> str:
+    # Cubre los aspectos, pero sin garantía, sin divisa y con un plazo prohibido.
+    return f"## Propuesta\n\n{_aspects(prompt)}\n\nEntregamos en 5 días."
+
+
+class FakeLLM:
+    """LLM falso: registra cada llamada y responde según la n-ésima llamada del departamento."""
+
+    def __init__(self, script: Callable[[int], Callable[[str], str]]) -> None:
+        self.script = script
+        self.calls: list[tuple[str, str]] = []
+        self._lock = threading.Lock()
+
+    def __call__(self, instructions: str, prompt: str) -> str:
+        with self._lock:
+            self.calls.append((instructions, prompt))
+            nth = sum(1 for item, _ in self.calls if item == instructions)
+        return self.script(nth)(prompt)
+
+    def calls_for(self, department_id: str) -> list[str]:
+        marker = proposal.DEPARTMENT_AGENTS[department_id]
+        return [prompt for instructions, prompt in self.calls if instructions.startswith(marker)]
+
+
+@pytest.fixture(autouse=True)
+def fake_llm(monkeypatch: pytest.MonkeyPatch) -> FakeLLM:
+    llm = FakeLLM(lambda _n: passing_draft)
+    monkeypatch.setattr(proposal, "call_llm", llm)
+    return llm
+
+
+def test_generator_uses_part_one_handoff_and_department_rules(fake_llm: FakeLLM) -> None:
     result = proposal.run_proposal_generation(_ticket())
 
     assert result.status == "under_evaluation"
     assert {section.department_id for section in result.sections} == {"seleccion", "capacitacion"}
     selection = next(item for item in result.sections if item.department_id == "seleccion")
-    assert "5 roles de mandos medios" in selection.draft_content
-    assert "al menos 15 días laborables" in selection.draft_content
-    assert "EUR" in selection.draft_content
-    assert "90 días" in selection.draft_content
+    first_prompt = fake_llm.calls_for("seleccion")[0]
+    assert "5 roles de mandos medios" in first_prompt
+    assert "Divisa: EUR" in first_prompt
     assert selection.evaluation_results[-1].overall_pass is True
+    assert selection.generation_iteration == 1
+
+
+def test_failing_drafts_iterate_until_compliance_passes(monkeypatch: pytest.MonkeyPatch) -> None:
+    llm = FakeLLM(lambda n: failing_draft if n < 3 else passing_draft)
+    monkeypatch.setattr(proposal, "call_llm", llm)
+
+    result = proposal.run_proposal_generation(_ticket())
+
+    assert result.status == "under_evaluation"
+    for section in result.sections:
+        assert section.generation_iteration == 3
+        assert section.needs_human_review is False
+        assert [item.overall_pass for item in section.evaluation_results] == [False, False, True]
+        assert section.evaluation_results[0].compliance.passed is False
+    selection = next(item for item in result.sections if item.department_id == "seleccion")
+    assert any(v.startswith("SEL-15") for v in selection.evaluation_results[0].compliance.violations)
+
+
+def test_always_failing_llm_stops_at_three_iterations(monkeypatch: pytest.MonkeyPatch) -> None:
+    llm = FakeLLM(lambda _n: failing_draft)
+    monkeypatch.setattr(proposal, "call_llm", llm)
+
+    result = proposal.run_proposal_generation(_ticket())
+
+    assert proposal.MAX_GENERATION_ITERATIONS == 3
+    assert result.status == "needs_human_review"
+    for section in result.sections:
+        assert section.needs_human_review is True
+        assert section.generation_iteration == 3
+        assert len(section.evaluation_results) == 3
+        assert section.draft_content.endswith("Entregamos en 5 días.")
+    assert len(llm.calls) == 6
+
+
+def test_generator_calls_llm_per_department_and_feeds_back_evaluation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    llm = FakeLLM(lambda n: failing_draft if n == 1 else passing_draft)
+    monkeypatch.setattr(proposal, "call_llm", llm)
+
+    proposal.run_proposal_generation(_ticket())
+
+    for department_id in ("seleccion", "capacitacion"):
+        prompts = llm.calls_for(department_id)
+        assert len(prompts) == 2
+        assert "Feedback de los evaluadores" not in prompts[0]
+        assert "Feedback de los evaluadores" in prompts[1]
+        assert "G-90" in prompts[1] and "CUR-01" in prompts[1]
+        assert "Entregamos en 5 días." in prompts[1]
+    assert "SEL-15" in llm.calls_for("seleccion")[1]
+    assert "SEL-15" not in llm.calls_for("capacitacion")[1]
+
+
+def test_department_agents_do_not_hardcode_compliance_phrases() -> None:
+    for prompt in proposal.DEPARTMENT_AGENTS.values():
+        text = (prompt + proposal.COMMON_INSTRUCTIONS).lower()
+        assert "90 días" not in text and "24 horas" not in text and "15 días" not in text
 
 
 def test_compliance_evaluator_is_anchored_to_nexova_rules() -> None:

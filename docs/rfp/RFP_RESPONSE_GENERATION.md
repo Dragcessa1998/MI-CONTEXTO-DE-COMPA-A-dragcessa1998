@@ -15,6 +15,26 @@ iteración, los tres resultados estructurados y feedback accionable. Si se agota
 el límite, el último borrador no se pierde: se persiste junto al historial y el
 ticket pasa a `needs_human_review` para la Parte 3.
 
+## Generador LLM por departamento
+
+`generate_department_section` ya no es una plantilla: es un agente LLM por
+departamento. `DEPARTMENT_AGENTS` define un prompt de sistema propio para
+selección, capacitación y soporte; `call_llm` es la única llamada al modelo
+(cliente OpenAI compartido de `data/process/rag.py`, modelo en
+`OPENAI_GENERATION_MODEL`). El prompt sólo lleva el handoff de la Parte 1
+(cliente, sede, divisa, alcance, `key_aspects`, `open_questions`). Ningún prompt
+contiene las frases que verifica el evaluador de cumplimiento (garantía de 90
+días, SLA de 24 h, 15 días laborables): si el borrador no las incluye, el
+evaluador falla y, en la siguiente iteración, el agente recibe su borrador
+anterior y el `actionable_feedback` con los identificadores de regla para
+corregirlo. Así el ciclo puede fallar de verdad.
+
+Los tests (`tests/pipelines/test_rfp_proposal.py`) sustituyen `call_llm` por un
+LLM falso sin red y prueban: borradores que fallan dos veces y aprueban en la
+tercera iteración; un LLM que siempre falla y se detiene en
+`MAX_GENERATION_ITERATIONS = 3` con `needs_human_review`; y que cada
+departamento llama a su propio agente y recibe el feedback en el reintento.
+
 ## Reglas de cumplimiento
 
 - `G-90`: garantía de satisfacción de 90 días.

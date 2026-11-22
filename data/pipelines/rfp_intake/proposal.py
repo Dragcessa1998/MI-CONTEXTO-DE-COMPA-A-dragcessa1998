@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Mapping, TypedDict
@@ -37,42 +38,74 @@ def _compact(value: str) -> str:
     return " ".join(value.split())
 
 
+GENERATION_MODEL = os.getenv("OPENAI_GENERATION_MODEL", "gpt-5.6-luna")
+
+# Un agente (prompt de sistema) por departamento. Ninguno contiene las frases que
+# busca el evaluador de cumplimiento: el borrador sale del modelo y, si falla, el
+# feedback de los evaluadores vuelve al mismo agente en la siguiente iteración.
+DEPARTMENT_AGENTS: dict[str, str] = {
+    "seleccion": (
+        "Eres el redactor de propuestas de Talent Selection Operations de Nexova. "
+        "Escribes la sección de selección de talento y búsqueda ejecutiva de una respuesta a RFP."
+    ),
+    "capacitacion": (
+        "Eres el redactor de propuestas de Corporate Training de Nexova. "
+        "Escribes la sección de capacitación corporativa de una respuesta a RFP."
+    ),
+    "soporte": (
+        "Eres el redactor de propuestas de Customer Support (outsourcing) de Nexova. "
+        "Escribes la sección de soporte externalizado de una respuesta a RFP."
+    ),
+}
+COMMON_INSTRUCTIONS = (
+    " Responde en español, en Markdown, con frases cortas y directas. Usa sólo los datos "
+    "del ticket; no inventes cifras ni nombres de clientes. Cubre todos los aspectos clave, "
+    "cotiza en la divisa indicada y respeta las políticas comerciales de Nexova. Si recibes "
+    "feedback de los evaluadores, reescribe el borrador corrigiendo cada punto."
+)
+
+
+def call_llm(instructions: str, prompt: str) -> str:
+    """Única puerta al modelo; los tests la sustituyen por un LLM falso."""
+
+    from data.process.rag import get_openai_client
+
+    response = get_openai_client().responses.create(
+        model=GENERATION_MODEL,
+        instructions=instructions,
+        input=prompt,
+        max_output_tokens=900,
+    )
+    return response.output_text
+
+
+def _bullets(items: Any) -> str:
+    return "\n".join(f"- {item}" for item in items or []) or "- (ninguno)"
+
+
 def generate_department_section(
     metadata: RfpMetadata,
     section: Mapping[str, Any],
     feedback: list[str] | None = None,
+    previous_draft: str | None = None,
 ) -> str:
-    """Genera sólo con el handoff persistido de Parte 1; nunca vuelve al PDF."""
+    """Agente LLM del departamento; sólo usa el handoff persistido de Parte 1."""
 
     department_id = str(section["department_id"])
-    client_name = metadata.client_name.rstrip(".")
-    key_aspects = [str(item) for item in section.get("key_aspects", [])]
-    open_questions = [str(item) for item in section.get("open_questions", [])]
-    titles = {
-        "seleccion": "Selección de talento",
-        "capacitacion": "Capacitación corporativa",
-        "soporte": "Soporte externalizado",
-    }
-    commitments = {
-        "seleccion": "El plazo comprometido será de al menos 15 días laborables para cualquier búsqueda ejecutiva.",
-        "capacitacion": "El calendario y el formato de impartición se cerrarán con el responsable del cliente.",
-        "soporte": "El servicio incluirá explícitamente un SLA de respuesta de 24 horas y la cobertura de turnos acordada.",
-    }
-    aspects = "\n".join(f"- {item}" for item in key_aspects) or "- Alcance pendiente de confirmación."
-    questions = "\n".join(f"- {item}" for item in open_questions) or "- No hay preguntas abiertas."
-    revision = ""
-    if feedback:
-        revision = "\n\nAjustes aplicados en esta revisión:\n" + "\n".join(f"- {item}" for item in feedback)
-    return (
-        f"## {titles[department_id]}\n\n"
-        f"Nexova propone este workstream para {client_name}. La cotización se expresará en {metadata.currency}. "
-        "El alcance se validará antes de convertir preguntas abiertas en compromisos.\n\n"
-        f"### Requisitos cubiertos\n{aspects}\n\n"
-        f"### Compromisos del servicio\n{commitments[department_id]} "
-        "La propuesta incluye la garantía estándar de satisfacción de 90 días de Nexova. "
-        "Cualquier referencia se presentará de forma anónima, por ejemplo como «un cliente del mismo sector».\n\n"
-        f"### Puntos por confirmar\n{questions}{revision}"
+    prompt = (
+        f"Cliente: {metadata.client_name}\nSede: {metadata.client_hq}\nDivisa: {metadata.currency}\n"
+        f"Alcance: {metadata.scope}\n\nAspectos clave:\n{_bullets(section.get('key_aspects'))}\n\n"
+        f"Preguntas abiertas:\n{_bullets(section.get('open_questions'))}"
     )
+    if feedback:
+        prompt += (
+            f"\n\nBorrador anterior:\n{previous_draft or ''}\n\n"
+            f"Feedback de los evaluadores (corrige cada punto):\n{_bullets(feedback)}"
+        )
+    draft = call_llm(DEPARTMENT_AGENTS[department_id] + COMMON_INSTRUCTIONS, prompt).strip()
+    if not draft:
+        raise RuntimeError(f"El modelo devolvió un borrador vacío para {department_id}")
+    return draft
 
 
 def evaluate_readability(draft: str) -> ReadabilityEvaluation:
@@ -168,7 +201,9 @@ def generator_node(state: ProposalState) -> dict[str, Any]:
     prior = state.get("evaluations", [])
     feedback = prior[-1].get("actionable_feedback", []) if prior else []
     return {
-        "draft_content": generate_department_section(metadata, state["section"], feedback),
+        "draft_content": generate_department_section(
+            metadata, state["section"], feedback, state.get("draft_content")
+        ),
         "iteration": state.get("iteration", 0) + 1,
     }
 

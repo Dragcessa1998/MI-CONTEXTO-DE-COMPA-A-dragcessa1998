@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+import data.pipelines.rfp_intake.proposal as proposal
 from data.pipelines.rfp_intake.models import IntakeResult
 from data.pipelines.rfp_intake.proposal_models import ProposalGenerationResult
 from main import app
@@ -96,11 +97,23 @@ class MemoryRfpRepository:
         self.tickets[ticket_id]["processing_error"] = "processing_failed"
 
 
+def _compliant_llm(_instructions: str, prompt: str) -> str:
+    """LLM falso, sin red: devuelve un borrador que cumple las reglas de Nexova."""
+
+    aspects = prompt.split("Aspectos clave:\n", 1)[1].split("\n\n", 1)[0]
+    currency = prompt.split("Divisa: ", 1)[1].split("\n", 1)[0]
+    return (
+        f"{aspects}\n\nCotizamos en {currency}. Incluye la garantía de satisfacción de 90 días. "
+        "Cada búsqueda ejecutiva dura al menos 15 días laborables. El SLA de respuesta es de 24 horas."
+    )
+
+
 @pytest.fixture
 def rfp_repository(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     repository = MemoryRfpRepository()
     app.dependency_overrides[rfp_routes.repository_dependency] = lambda: repository
     monkeypatch.setattr(rfp_routes, "RAW_DIR", tmp_path / "raw")
+    monkeypatch.setattr(proposal, "call_llm", _compliant_llm)
     yield repository
     app.dependency_overrides.pop(rfp_routes.repository_dependency, None)
 
