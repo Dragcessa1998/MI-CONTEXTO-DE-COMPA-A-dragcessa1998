@@ -1,24 +1,42 @@
 {
+  "features": [
+    "month_index",
+    "month_sin",
+    "month_cos",
+    "revenue_lag_1",
+    "revenue_lag_2",
+    "revenue_lag_12",
+    "revenue_rolling_mean_3",
+    "revenue_rolling_mean_12",
+    "active_contracts_lag_1",
+    "avg_contract_value_usd_lag_1"
+  ],
   "k2_definition": "Course label operationalized as R\u00b2 coefficient of determination.",
-  "k2_score": 0.5179278599075872,
+  "k2_score": 0.5758098193908077,
   "mean_test_revenue_usd": 959363.2474999999,
-  "mse_percent_of_mean_revenue_squared": 0.390703183715836,
-  "mse_usd_squared": 3595945525.64925,
-  "normalized_gini": 0.893934426071582,
-  "prediction_band_coverage_percent": 58.333333333333336,
+  "mse_percent_of_mean_revenue_squared": 0.34379181097923667,
+  "mse_usd_squared": 3164183646.235107,
+  "normalized_gini": 0.8131768333105731,
+  "prediction_band_coverage_percent": 79.16666666666666,
   "psi_by_feature": {
-    "active_contracts": 6.515282790171433,
-    "avg_contract_value_usd": 1.4369763298698925,
+    "active_contracts_lag_1": 6.2145833705781515,
+    "avg_contract_value_usd_lag_1": 1.3737616202460818,
     "month_cos": 0.0,
-    "month_index": 12.33678111918624,
-    "month_sin": 0.0
+    "month_index": 12.267869161526212,
+    "month_sin": 0.0,
+    "revenue_lag_1": 8.088322370991738,
+    "revenue_lag_12": 8.446389242121358,
+    "revenue_lag_2": 6.934461171323836,
+    "revenue_rolling_mean_12": 12.267869161526212,
+    "revenue_rolling_mean_3": 9.631961339674145
   },
-  "psi_revenue_train_vs_test": 8.160183598312226,
-  "rmse_percent_of_mean_revenue": 6.250625438432829,
-  "rmse_usd": 59966.2031952103,
+  "psi_revenue_train_vs_test": 8.127424766385527,
+  "rmse_percent_of_mean_revenue": 5.863376254166507,
+  "rmse_usd": 56251.076845115655,
   "test_period": {
     "from": "2024-01-01",
     "months": 24,
     "to": "2025-12-01"
-  }
+  },
+  "train_rows_after_warmup": 84
 }

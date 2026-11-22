@@ -35,9 +35,18 @@ FEATURE_COLUMNS = (
     "month_index",
     "month_sin",
     "month_cos",
-    "active_contracts",
-    "avg_contract_value_usd",
+    "revenue_lag_1",
+    "revenue_lag_2",
+    "revenue_lag_12",
+    "revenue_rolling_mean_3",
+    "revenue_rolling_mean_12",
+    "active_contracts_lag_1",
+    "avg_contract_value_usd_lag_1",
 )
+# Same-month operational columns are forbidden: contracts x average value of
+# month t is almost the revenue of month t and is unknown at forecast time.
+FORBIDDEN_SAME_MONTH_COLUMNS = ("active_contracts", "avg_contract_value_usd")
+WARMUP_MONTHS = 12
 RANDOM_STATE = 42
 
 
@@ -100,21 +109,57 @@ def temporal_split(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def build_features(frame: pd.DataFrame) -> pd.DataFrame:
-    """Create calendar, trend and contract features without using the target."""
+    """Create causal features: every value at month t uses data up to t-1 only.
+
+    Lags and rolling windows of the target are shifted by one month *before*
+    rolling. The first ``WARMUP_MONTHS`` rows have NaN (incomplete history) and
+    are dropped consistently by ``supervised_split``.
+    """
 
     month_number = frame["month"].dt.month.astype(float)
     month_index = (
         (frame["month"].dt.year - 2016) * 12 + frame["month"].dt.month - 1
     ).astype(float)
+    past_revenue = frame["revenue_usd"].astype(float).shift(1)
     return pd.DataFrame(
         {
             "month_index": month_index,
             "month_sin": np.sin(2 * np.pi * month_number / 12),
             "month_cos": np.cos(2 * np.pi * month_number / 12),
-            "active_contracts": frame["active_contracts"].astype(float),
-            "avg_contract_value_usd": frame["avg_contract_value_usd"].astype(float),
+            "revenue_lag_1": past_revenue,
+            "revenue_lag_2": frame["revenue_usd"].astype(float).shift(2),
+            "revenue_lag_12": frame["revenue_usd"].astype(float).shift(12),
+            "revenue_rolling_mean_3": past_revenue.rolling(3).mean(),
+            "revenue_rolling_mean_12": past_revenue.rolling(12).mean(),
+            "active_contracts_lag_1": frame["active_contracts"].astype(float).shift(1),
+            "avg_contract_value_usd_lag_1": frame["avg_contract_value_usd"]
+            .astype(float)
+            .shift(1),
         },
         index=frame.index,
+    )[list(FEATURE_COLUMNS)]
+
+
+def supervised_split(
+    frame: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Build features on the full chronology, then apply the 8+2 year split.
+
+    Test lags use the previous real months (one-step-ahead forecast). Warm-up
+    rows without complete history (2016) are dropped from training.
+    """
+
+    features = build_features(frame)
+    train, test = temporal_split(frame)
+    train_mask = frame["month"].isin(train["month"]) & features.notna().all(axis=1)
+    test_mask = frame["month"].isin(test["month"])
+    if features[test_mask].isna().any().any():
+        raise ValueError("test features must be complete")
+    return (
+        frame[train_mask].reset_index(drop=True),
+        features[train_mask].reset_index(drop=True),
+        frame[test_mask].reset_index(drop=True),
+        features[test_mask].reset_index(drop=True),
     )
 
 
@@ -194,6 +239,8 @@ def normalized_gini(actual: np.ndarray, prediction: np.ndarray) -> float:
 def calculate_metrics(
     train: pd.DataFrame,
     test: pd.DataFrame,
+    train_features: pd.DataFrame,
+    test_features: pd.DataFrame,
     predicted: np.ndarray,
     lower: np.ndarray,
     upper: np.ndarray,
@@ -204,8 +251,8 @@ def calculate_metrics(
     mean_revenue = float(actual.mean())
     feature_psi = {
         column: population_stability_index(
-            build_features(train)[column].to_numpy(),
-            build_features(test)[column].to_numpy(),
+            train_features[column].to_numpy(),
+            test_features[column].to_numpy(),
         )
         for column in FEATURE_COLUMNS
     }
@@ -336,10 +383,17 @@ tuning surface of XGBoost. The fixed seed makes the experiment reproducible.
 ## Test design
 
 - Official dataset: 120 monthly consolidated rows, 2016-01 through 2025-12.
-- Train: first 8 years (96 rows, 2016-01 through 2023-12).
-- Test: final 2 years (24 unseen rows, 2024-01 through 2025-12).
-- Features: calendar trend/seasonality, active contracts and average contract
-  value. The target `revenue_usd` is never used as an input feature.
+- Train: first 8 years (2016-01 through 2023-12). The first 12 months (2016)
+  are warm-up rows without complete history for the 12-month lag/rolling
+  features and are dropped, so the model fits {metrics["train_rows_after_warmup"]} rows (2017-01 to 2023-12).
+- Test: final 2 years (24 unseen rows, 2024-01 through 2025-12), evaluated as
+  one-step-ahead forecasts (lags use the real previous months).
+- Features (all causal, month t only sees data up to t-1): calendar
+  trend/seasonality; revenue lags 1, 2 and 12; rolling means of 3 and 12
+  months computed with `shift(1)` *before* `rolling`; and `active_contracts`
+  and `avg_contract_value_usd` lagged one month. Same-month contracts and
+  average contract value (whose product is almost the target) are not used.
+  `tests/pipelines/test_sales_forecast.py` contains a no-leakage test.
 
 ## Test metrics
 
@@ -360,10 +414,11 @@ shift. RMSE is therefore the primary Finance metric; Gini answers Laura's need
 to distinguish August slowdowns from stronger January/February months, while
 PSI warns that the recent period differs from the training population.
 
-For future inference, Finance must provide planned `active_contracts` and
-`avg_contract_value_usd`; they are contemporaneous operational inputs, not
-values forecast by this model. The calendar-only alternative would avoid that
-dependency but would be materially less useful with a 120-row dataset.
+For future inference the model only needs data already closed: last months'
+revenue, active contracts and average contract value. A previous version used
+same-month contracts x average value, which is almost the revenue being
+predicted and unknown in advance; that leakage was removed and the metrics
+above are the honest causal ones.
 
 `K2 score` is not a standard regression metric in scikit-learn. To keep the
 course contract auditable, this implementation reports that label as R² (the
@@ -385,11 +440,15 @@ def run(
     dataset: Path = DEFAULT_DATASET, output_dir: Path = DEFAULT_OUTPUT_DIR
 ) -> dict[str, Any]:
     frame = load_sales_data(dataset)
-    train, test = temporal_split(frame)
+    train, train_features, test, test_features = supervised_split(frame)
     model = build_model()
-    model.fit(build_features(train), train["revenue_usd"])
-    predicted, lower, upper = prediction_band(model, build_features(test))
-    metrics = calculate_metrics(train, test, predicted, lower, upper)
+    model.fit(train_features, train["revenue_usd"])
+    predicted, lower, upper = prediction_band(model, test_features)
+    metrics = calculate_metrics(
+        train, test, train_features, test_features, predicted, lower, upper
+    )
+    metrics["train_rows_after_warmup"] = len(train)
+    metrics["features"] = list(FEATURE_COLUMNS)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     predictions = pd.DataFrame(
